@@ -10,7 +10,26 @@ let _genbaSelectedStatus = '進行中';
 // 現場一覧の表示
 // ==========================================
 async function initGenbaScreen() {
+  // 保存ボタンのイベントバインド（毎回確認）
+  bindGenbaSaveButton();
   await renderGenbaList();
+}
+
+// 保存ボタンにaddEventListenerをバインド
+function bindGenbaSaveButton() {
+  var btn = document.getElementById('genba-save-btn');
+  if (!btn) {
+    console.warn('[genba] genba-save-btn が見つかりません');
+    return;
+  }
+  // 二重バインド防止
+  if (btn._genbaBound) return;
+  btn._genbaBound = true;
+  btn.addEventListener('click', function() {
+    console.log('[genba] 保存ボタンクリック検知');
+    saveGenbaForm();
+  });
+  console.log('[genba] ✓ 保存ボタンにイベントをバインドしました');
 }
 
 async function renderGenbaList() {
@@ -91,6 +110,9 @@ async function openGenbaForm(id) {
   var modal = document.getElementById('genba-modal');
   if (!modal) return;
 
+  // 保存ボタンのバインド確認
+  bindGenbaSaveButton();
+
   // フォームリセット
   document.getElementById('genba-edit-id').value = '';
   document.getElementById('genba-name').value = '';
@@ -159,37 +181,45 @@ function updateGenbaStatusButtons() {
 // ==========================================
 async function saveGenbaForm() {
   console.log('[genba] saveGenbaForm 開始');
-  var name = document.getElementById('genba-name').value.trim();
-  if (!name) {
-    alert('現場名を入力してください');
-    return;
+
+  // ボタンの視覚フィードバック
+  var saveBtn = document.getElementById('genba-save-btn');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = '保存中...';
   }
-
-  var id = document.getElementById('genba-edit-id').value;
-  var genba = {};
-
-  if (id) {
-    // 編集 - 既存データを取得してマージ
-    try {
-      genba = (await getGenba(id)) || {};
-    } catch(e) {
-      console.error('[genba] getGenba失敗:', e);
-      genba = { id: id };
-    }
-  }
-
-  genba.name = name;
-  genba.address = document.getElementById('genba-address').value.trim();
-  genba.clientName = document.getElementById('genba-client').value.trim();
-  genba.startDate = document.getElementById('genba-start').value;
-  genba.endDate = document.getElementById('genba-end').value;
-  genba.status = _genbaSelectedStatus;
-  genba.memo = document.getElementById('genba-memo').value.trim();
-
-  console.log('[genba] 保存データ:', JSON.stringify(genba));
 
   try {
-    var result = await saveGenba(genba);
+    var name = document.getElementById('genba-name').value.trim();
+    if (!name) {
+      alert('現場名を入力してください');
+      return;
+    }
+
+    var id = document.getElementById('genba-edit-id').value;
+    var genba = {};
+
+    if (id) {
+      // 編集 - 既存データを取得してマージ
+      try {
+        genba = (await withTimeout(getGenba(id), 5000)) || {};
+      } catch(e) {
+        console.error('[genba] getGenba失敗:', e);
+        genba = { id: id };
+      }
+    }
+
+    genba.name = name;
+    genba.address = document.getElementById('genba-address').value.trim();
+    genba.clientName = document.getElementById('genba-client').value.trim();
+    genba.startDate = document.getElementById('genba-start').value;
+    genba.endDate = document.getElementById('genba-end').value;
+    genba.status = _genbaSelectedStatus;
+    genba.memo = document.getElementById('genba-memo').value.trim();
+
+    console.log('[genba] 保存データ:', JSON.stringify(genba));
+
+    var result = await withTimeout(saveGenba(genba), 8000);
     if (!result) {
       console.error('[genba] saveGenba returned null');
       alert('保存に失敗しました。アプリを再読み込みしてください。');
@@ -201,8 +231,34 @@ async function saveGenbaForm() {
     showScreen('home');
   } catch(e) {
     console.error('[genba] saveGenba失敗:', e);
-    alert('保存に失敗しました: ' + e.message);
+    if (e.message === 'TIMEOUT') {
+      alert('保存がタイムアウトしました。ページを再読み込み（キャッシュクリア）してください。');
+    } else {
+      alert('保存に失敗しました: ' + e.message);
+    }
+  } finally {
+    // ボタンを元に戻す
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '保存する';
+    }
   }
+}
+
+// Promiseタイムアウトラッパー
+function withTimeout(promise, ms) {
+  return new Promise(function(resolve, reject) {
+    var timer = setTimeout(function() {
+      reject(new Error('TIMEOUT'));
+    }, ms);
+    promise.then(function(val) {
+      clearTimeout(timer);
+      resolve(val);
+    }).catch(function(err) {
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
 }
 
 // ==========================================
@@ -266,6 +322,7 @@ window.openGenbaForm = openGenbaForm;
 window.closeGenbaModal = closeGenbaModal;
 window.selectGenbaStatus = selectGenbaStatus;
 window.saveGenbaForm = saveGenbaForm;
+window.bindGenbaSaveButton = bindGenbaSaveButton;
 window.confirmDeleteGenba = confirmDeleteGenba;
 
 console.log('[genba.js] ✓ 現場管理モジュール読み込み完了');

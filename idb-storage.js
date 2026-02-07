@@ -80,6 +80,23 @@ function resetDB() {
   _dbPromise = null;
 }
 
+// DB接続テスト（デバッグ用）
+async function testDB() {
+  try {
+    console.log('[IDB] testDB開始...');
+    var db = await getDB();
+    console.log('[IDB] testDB: DB取得OK, version=' + db.version);
+    console.log('[IDB] testDB: stores=', Array.from(db.objectStoreNames));
+    var hasGenba = db.objectStoreNames.contains(STORE_GENBA);
+    var hasKoutei = db.objectStoreNames.contains(STORE_KOUTEI);
+    console.log('[IDB] testDB: genba=' + hasGenba + ', koutei=' + hasKoutei);
+    return { ok: true, version: db.version, hasGenba: hasGenba, hasKoutei: hasKoutei };
+  } catch(e) {
+    console.error('[IDB] testDB失敗:', e);
+    return { ok: false, error: e.message };
+  }
+}
+
 // ==========================================
 // 基本CRUD操作
 // ==========================================
@@ -559,6 +576,7 @@ async function deleteKoutei(id, _retry) {
 // ==========================================
 window.getDB = getDB;
 window.resetDB = resetDB;
+window.testDB = testDB;
 window.saveImageToIDB = saveImageToIDB;
 window.getImageFromIDB = getImageFromIDB;
 window.deleteImageFromIDB = deleteImageFromIDB;
