@@ -336,8 +336,8 @@ function initCategoryEditor() {
 (function autoHookCategoryEditor() {
   if (typeof window.showScreen === 'function' && !window._catEditorHooked) {
     const _origShowScreen = window.showScreen;
-    window.showScreen = function(screenName) {
-      _origShowScreen(screenName);
+    window.showScreen = async function(screenName) {
+      await _origShowScreen(screenName);
       if (screenName === 'settings') {
         initCategoryEditor();
       }

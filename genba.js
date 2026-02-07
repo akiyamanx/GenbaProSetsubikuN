@@ -158,6 +158,7 @@ function updateGenbaStatusButtons() {
 // 保存
 // ==========================================
 async function saveGenbaForm() {
+  console.log('[genba] saveGenbaForm 開始');
   var name = document.getElementById('genba-name').value.trim();
   if (!name) {
     alert('現場名を入力してください');
@@ -172,7 +173,7 @@ async function saveGenbaForm() {
     try {
       genba = (await getGenba(id)) || {};
     } catch(e) {
-      console.error('getGenba失敗:', e);
+      console.error('[genba] getGenba失敗:', e);
       genba = { id: id };
     }
   }
@@ -185,19 +186,21 @@ async function saveGenbaForm() {
   genba.status = _genbaSelectedStatus;
   genba.memo = document.getElementById('genba-memo').value.trim();
 
+  console.log('[genba] 保存データ:', JSON.stringify(genba));
+
   try {
     var result = await saveGenba(genba);
     if (!result) {
+      console.error('[genba] saveGenba returned null');
       alert('保存に失敗しました。アプリを再読み込みしてください。');
       return;
     }
     console.log('[genba] 保存成功:', result.id, result.name);
     closeGenbaModal();
-    await renderGenbaList();
-    // ダッシュボードも更新
-    if (typeof updateDashboard === 'function') updateDashboard();
+    // ホーム画面に戻る
+    showScreen('home');
   } catch(e) {
-    console.error('saveGenba失敗:', e);
+    console.error('[genba] saveGenba失敗:', e);
     alert('保存に失敗しました: ' + e.message);
   }
 }
@@ -251,10 +254,7 @@ function formatDateShort(dateStr) {
   return dateStr;
 }
 
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+// escapeHtmlはglobals.jsで定義済み
 
 // ==========================================
 // グローバル公開

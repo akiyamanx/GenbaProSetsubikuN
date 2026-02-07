@@ -32,103 +32,52 @@ let _dbPromise = null;
  * @returns {Promise<IDBDatabase>}
  */
 function getDB() {
-  if (_dbPromise) {
-    // キャッシュ済みの接続が生きているか確認
-    return _dbPromise.then(function(db) {
-      try {
-        // 接続が閉じていないかテスト
-        if (db.objectStoreNames.contains(STORE_IMAGES)) {
-          return db;
-        }
-        // ストアが見つからない → 再接続
-        _dbPromise = null;
-        return getDB();
-      } catch(e) {
-        // InvalidStateError等 → DB接続が切れている → 再接続
-        console.warn('[IDB] DB接続が無効です。再接続します:', e.message);
-        _dbPromise = null;
-        return getDB();
-      }
-    });
-  }
+  if (_dbPromise) return _dbPromise;
 
   _dbPromise = new Promise(function(resolve, reject) {
-    var req;
-    try {
-      req = indexedDB.open(IDB_NAME, IDB_VERSION);
-    } catch(e) {
-      console.error('[IDB] indexedDB.open失敗:', e);
-      _dbPromise = null;
-      reject(e);
-      return;
-    }
+    var req = indexedDB.open(IDB_NAME, IDB_VERSION);
 
     req.onupgradeneeded = function(e) {
       var db = e.target.result;
-      console.log('[IDB] アップグレード: v' + e.oldVersion + ' → v' + e.newVersion);
-      // v1: 画像ストア
+      console.log('[IDB] upgrade v' + e.oldVersion + ' → v' + e.newVersion);
       if (!db.objectStoreNames.contains(STORE_IMAGES)) {
         db.createObjectStore(STORE_IMAGES, { keyPath: 'key' });
-        console.log('[IDB] imagesストアを作成しました');
       }
-      // v2: 現場ストア
       if (!db.objectStoreNames.contains(STORE_GENBA)) {
-        var genbaStore = db.createObjectStore(STORE_GENBA, { keyPath: 'id' });
-        genbaStore.createIndex('status', 'status', { unique: false });
-        genbaStore.createIndex('updatedAt', 'updatedAt', { unique: false });
-        console.log('[IDB] genbaストアを作成しました');
+        var gs = db.createObjectStore(STORE_GENBA, { keyPath: 'id' });
+        gs.createIndex('status', 'status', { unique: false });
+        gs.createIndex('updatedAt', 'updatedAt', { unique: false });
       }
-      // v2: 工程ストア
       if (!db.objectStoreNames.contains(STORE_KOUTEI)) {
-        var kouteiStore = db.createObjectStore(STORE_KOUTEI, { keyPath: 'id' });
-        kouteiStore.createIndex('genbaId', 'genbaId', { unique: false });
-        console.log('[IDB] kouteiストアを作成しました');
+        var ks = db.createObjectStore(STORE_KOUTEI, { keyPath: 'id' });
+        ks.createIndex('genbaId', 'genbaId', { unique: false });
       }
     };
 
     req.onblocked = function() {
-      console.warn('[IDB] DB upgrade blocked - 他の接続を閉じてリトライします');
-      // 旧バージョンの接続がブロックしている → 強制的にrejectしてリトライ可能に
-      _dbPromise = null;
-      reject(new Error('DB upgrade blocked'));
+      console.warn('[IDB] blocked');
     };
 
     req.onsuccess = function() {
       var db = req.result;
-      console.log('[IDB] DB接続成功 (v' + db.version + ')');
-      // 他のタブがバージョンアップを要求した時、この接続を閉じる
-      db.onversionchange = function() {
-        console.log('[IDB] 他の接続がバージョンアップを要求。接続を閉じます');
-        db.close();
-        _dbPromise = null;
-      };
-      // ストア存在チェック
-      if (!db.objectStoreNames.contains(STORE_GENBA)) {
-        console.error('[IDB] genbaストアが存在しません。DBを削除して再作成します');
-        db.close();
-        _dbPromise = null;
-        // DBを削除して再接続
-        var delReq = indexedDB.deleteDatabase(IDB_NAME);
-        delReq.onsuccess = function() {
-          console.log('[IDB] DB削除成功。再接続します');
-          resolve(getDB().then(function(newDb) { return newDb; }));
-        };
-        delReq.onerror = function() {
-          reject(new Error('DB recreate failed'));
-        };
-        return;
-      }
+      console.log('[IDB] open OK v' + db.version);
+      db.onversionchange = function() { db.close(); _dbPromise = null; };
       resolve(db);
     };
 
     req.onerror = function() {
-      console.error('[IDB] DB接続失敗:', req.error);
+      console.error('[IDB] open FAIL:', req.error);
       _dbPromise = null;
       reject(req.error);
     };
   });
 
   return _dbPromise;
+}
+
+// DB接続リセット（エラー回復用）
+function resetDB() {
+  _dbPromise = null;
 }
 
 // ==========================================
@@ -609,6 +558,7 @@ async function deleteKoutei(id, _retry) {
 // グローバル公開
 // ==========================================
 window.getDB = getDB;
+window.resetDB = resetDB;
 window.saveImageToIDB = saveImageToIDB;
 window.getImageFromIDB = getImageFromIDB;
 window.deleteImageFromIDB = deleteImageFromIDB;
