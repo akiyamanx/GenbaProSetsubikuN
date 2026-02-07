@@ -32,44 +32,102 @@ let _dbPromise = null;
  * @returns {Promise<IDBDatabase>}
  */
 function getDB() {
-  if (!_dbPromise) {
-    _dbPromise = new Promise(function(resolve, reject) {
-      var req = indexedDB.open(IDB_NAME, IDB_VERSION);
-      
-      req.onupgradeneeded = function(e) {
-        var db = e.target.result;
-        // v1: 画像ストア
-        if (!db.objectStoreNames.contains(STORE_IMAGES)) {
-          db.createObjectStore(STORE_IMAGES, { keyPath: 'key' });
-          console.log('[IDB] imagesストアを作成しました');
+  if (_dbPromise) {
+    // キャッシュ済みの接続が生きているか確認
+    return _dbPromise.then(function(db) {
+      try {
+        // 接続が閉じていないかテスト
+        if (db.objectStoreNames.contains(STORE_IMAGES)) {
+          return db;
         }
-        // v2: 現場ストア
-        if (!db.objectStoreNames.contains(STORE_GENBA)) {
-          var genbaStore = db.createObjectStore(STORE_GENBA, { keyPath: 'id' });
-          genbaStore.createIndex('status', 'status', { unique: false });
-          genbaStore.createIndex('updatedAt', 'updatedAt', { unique: false });
-          console.log('[IDB] genbaストアを作成しました');
-        }
-        // v2: 工程ストア
-        if (!db.objectStoreNames.contains(STORE_KOUTEI)) {
-          var kouteiStore = db.createObjectStore(STORE_KOUTEI, { keyPath: 'id' });
-          kouteiStore.createIndex('genbaId', 'genbaId', { unique: false });
-          console.log('[IDB] kouteiストアを作成しました');
-        }
-      };
-      
-      req.onsuccess = function() {
-        console.log('[IDB] DB接続成功');
-        resolve(req.result);
-      };
-      
-      req.onerror = function() {
-        console.error('[IDB] DB接続失敗:', req.error);
-        _dbPromise = null; // リトライ可能に
-        reject(req.error);
-      };
+        // ストアが見つからない → 再接続
+        _dbPromise = null;
+        return getDB();
+      } catch(e) {
+        // InvalidStateError等 → DB接続が切れている → 再接続
+        console.warn('[IDB] DB接続が無効です。再接続します:', e.message);
+        _dbPromise = null;
+        return getDB();
+      }
     });
   }
+
+  _dbPromise = new Promise(function(resolve, reject) {
+    var req;
+    try {
+      req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    } catch(e) {
+      console.error('[IDB] indexedDB.open失敗:', e);
+      _dbPromise = null;
+      reject(e);
+      return;
+    }
+
+    req.onupgradeneeded = function(e) {
+      var db = e.target.result;
+      console.log('[IDB] アップグレード: v' + e.oldVersion + ' → v' + e.newVersion);
+      // v1: 画像ストア
+      if (!db.objectStoreNames.contains(STORE_IMAGES)) {
+        db.createObjectStore(STORE_IMAGES, { keyPath: 'key' });
+        console.log('[IDB] imagesストアを作成しました');
+      }
+      // v2: 現場ストア
+      if (!db.objectStoreNames.contains(STORE_GENBA)) {
+        var genbaStore = db.createObjectStore(STORE_GENBA, { keyPath: 'id' });
+        genbaStore.createIndex('status', 'status', { unique: false });
+        genbaStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+        console.log('[IDB] genbaストアを作成しました');
+      }
+      // v2: 工程ストア
+      if (!db.objectStoreNames.contains(STORE_KOUTEI)) {
+        var kouteiStore = db.createObjectStore(STORE_KOUTEI, { keyPath: 'id' });
+        kouteiStore.createIndex('genbaId', 'genbaId', { unique: false });
+        console.log('[IDB] kouteiストアを作成しました');
+      }
+    };
+
+    req.onblocked = function() {
+      console.warn('[IDB] DB upgrade blocked - 他の接続を閉じてリトライします');
+      // 旧バージョンの接続がブロックしている → 強制的にrejectしてリトライ可能に
+      _dbPromise = null;
+      reject(new Error('DB upgrade blocked'));
+    };
+
+    req.onsuccess = function() {
+      var db = req.result;
+      console.log('[IDB] DB接続成功 (v' + db.version + ')');
+      // 他のタブがバージョンアップを要求した時、この接続を閉じる
+      db.onversionchange = function() {
+        console.log('[IDB] 他の接続がバージョンアップを要求。接続を閉じます');
+        db.close();
+        _dbPromise = null;
+      };
+      // ストア存在チェック
+      if (!db.objectStoreNames.contains(STORE_GENBA)) {
+        console.error('[IDB] genbaストアが存在しません。DBを削除して再作成します');
+        db.close();
+        _dbPromise = null;
+        // DBを削除して再接続
+        var delReq = indexedDB.deleteDatabase(IDB_NAME);
+        delReq.onsuccess = function() {
+          console.log('[IDB] DB削除成功。再接続します');
+          resolve(getDB().then(function(newDb) { return newDb; }));
+        };
+        delReq.onerror = function() {
+          reject(new Error('DB recreate failed'));
+        };
+        return;
+      }
+      resolve(db);
+    };
+
+    req.onerror = function() {
+      console.error('[IDB] DB接続失敗:', req.error);
+      _dbPromise = null;
+      reject(req.error);
+    };
+  });
+
   return _dbPromise;
 }
 
@@ -370,7 +428,7 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 }
 
-async function saveGenba(genba) {
+async function saveGenba(genba, _retry) {
   if (!genba.id) genba.id = generateId();
   var now = new Date().toISOString();
   if (!genba.createdAt) genba.createdAt = now;
@@ -380,16 +438,28 @@ async function saveGenba(genba) {
     return new Promise(function(resolve, reject) {
       var tx = db.transaction(STORE_GENBA, 'readwrite');
       tx.objectStore(STORE_GENBA).put(genba);
-      tx.oncomplete = function() { resolve(genba); };
-      tx.onerror = function() { reject(tx.error); };
+      tx.oncomplete = function() {
+        console.log('[IDB] saveGenba成功:', genba.id);
+        resolve(genba);
+      };
+      tx.onerror = function() {
+        console.error('[IDB] saveGenba tx error:', tx.error);
+        reject(tx.error);
+      };
     });
   } catch (e) {
     console.error('[IDB] saveGenba失敗:', e);
+    // 1回だけリトライ（DB接続リセット後）
+    if (!_retry) {
+      console.log('[IDB] saveGenba リトライします');
+      _dbPromise = null;
+      return saveGenba(genba, true);
+    }
     return null;
   }
 }
 
-async function getGenba(id) {
+async function getGenba(id, _retry) {
   try {
     var db = await getDB();
     return new Promise(function(resolve, reject) {
@@ -400,11 +470,15 @@ async function getGenba(id) {
     });
   } catch (e) {
     console.error('[IDB] getGenba失敗:', e);
+    if (!_retry) {
+      _dbPromise = null;
+      return getGenba(id, true);
+    }
     return null;
   }
 }
 
-async function getAllGenba() {
+async function getAllGenba(_retry) {
   try {
     var db = await getDB();
     return new Promise(function(resolve, reject) {
@@ -421,18 +495,23 @@ async function getAllGenba() {
     });
   } catch (e) {
     console.error('[IDB] getAllGenba失敗:', e);
+    if (!_retry) {
+      console.log('[IDB] getAllGenba リトライします');
+      _dbPromise = null;
+      return getAllGenba(true);
+    }
     return [];
   }
 }
 
-async function deleteGenba(id) {
+async function deleteGenba(id, _retry) {
   try {
-    var db = await getDB();
     // 現場に紐づく工程も削除
     var kouteiList = await getKouteiByGenba(id);
     for (var i = 0; i < kouteiList.length; i++) {
       await deleteKoutei(kouteiList[i].id);
     }
+    var db = await getDB();
     return new Promise(function(resolve, reject) {
       var tx = db.transaction(STORE_GENBA, 'readwrite');
       tx.objectStore(STORE_GENBA).delete(id);
@@ -441,6 +520,10 @@ async function deleteGenba(id) {
     });
   } catch (e) {
     console.error('[IDB] deleteGenba失敗:', e);
+    if (!_retry) {
+      _dbPromise = null;
+      return deleteGenba(id, true);
+    }
   }
 }
 
@@ -448,7 +531,7 @@ async function deleteGenba(id) {
 // 工程（koutei）CRUD
 // ==========================================
 
-async function saveKoutei(koutei) {
+async function saveKoutei(koutei, _retry) {
   if (!koutei.id) koutei.id = generateId();
   var now = new Date().toISOString();
   if (!koutei.createdAt) koutei.createdAt = now;
@@ -463,11 +546,12 @@ async function saveKoutei(koutei) {
     });
   } catch (e) {
     console.error('[IDB] saveKoutei失敗:', e);
+    if (!_retry) { _dbPromise = null; return saveKoutei(koutei, true); }
     return null;
   }
 }
 
-async function getKoutei(id) {
+async function getKoutei(id, _retry) {
   try {
     var db = await getDB();
     return new Promise(function(resolve, reject) {
@@ -478,11 +562,12 @@ async function getKoutei(id) {
     });
   } catch (e) {
     console.error('[IDB] getKoutei失敗:', e);
+    if (!_retry) { _dbPromise = null; return getKoutei(id, true); }
     return null;
   }
 }
 
-async function getKouteiByGenba(genbaId) {
+async function getKouteiByGenba(genbaId, _retry) {
   try {
     var db = await getDB();
     return new Promise(function(resolve, reject) {
@@ -500,11 +585,12 @@ async function getKouteiByGenba(genbaId) {
     });
   } catch (e) {
     console.error('[IDB] getKouteiByGenba失敗:', e);
+    if (!_retry) { _dbPromise = null; return getKouteiByGenba(genbaId, true); }
     return [];
   }
 }
 
-async function deleteKoutei(id) {
+async function deleteKoutei(id, _retry) {
   try {
     var db = await getDB();
     return new Promise(function(resolve, reject) {
@@ -515,6 +601,7 @@ async function deleteKoutei(id) {
     });
   } catch (e) {
     console.error('[IDB] deleteKoutei失敗:', e);
+    if (!_retry) { _dbPromise = null; return deleteKoutei(id, true); }
   }
 }
 

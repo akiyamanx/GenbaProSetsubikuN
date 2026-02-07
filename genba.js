@@ -169,7 +169,12 @@ async function saveGenbaForm() {
 
   if (id) {
     // 編集 - 既存データを取得してマージ
-    genba = (await getGenba(id)) || {};
+    try {
+      genba = (await getGenba(id)) || {};
+    } catch(e) {
+      console.error('getGenba失敗:', e);
+      genba = { id: id };
+    }
   }
 
   genba.name = name;
@@ -180,9 +185,21 @@ async function saveGenbaForm() {
   genba.status = _genbaSelectedStatus;
   genba.memo = document.getElementById('genba-memo').value.trim();
 
-  await saveGenba(genba);
-  closeGenbaModal();
-  await renderGenbaList();
+  try {
+    var result = await saveGenba(genba);
+    if (!result) {
+      alert('保存に失敗しました。アプリを再読み込みしてください。');
+      return;
+    }
+    console.log('[genba] 保存成功:', result.id, result.name);
+    closeGenbaModal();
+    await renderGenbaList();
+    // ダッシュボードも更新
+    if (typeof updateDashboard === 'function') updateDashboard();
+  } catch(e) {
+    console.error('saveGenba失敗:', e);
+    alert('保存に失敗しました: ' + e.message);
+  }
 }
 
 // ==========================================
@@ -190,8 +207,14 @@ async function saveGenbaForm() {
 // ==========================================
 async function confirmDeleteGenba(id, name) {
   if (confirm('「' + name + '」を削除しますか？\n紐づく工程データも削除されます。')) {
-    await deleteGenba(id);
-    await renderGenbaList();
+    try {
+      await deleteGenba(id);
+      await renderGenbaList();
+      if (typeof updateDashboard === 'function') updateDashboard();
+    } catch(e) {
+      console.error('deleteGenba失敗:', e);
+      alert('削除に失敗しました。');
+    }
   }
 }
 

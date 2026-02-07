@@ -39,7 +39,9 @@ async function showScreen(screenId) {
     saveBar.style.display = (screenId === 'settings') ? 'block' : 'none';
   }
   
-  if (screenId !== 'home') {
+  if (screenId === 'home') {
+    if (typeof updateDashboard === 'function') updateDashboard();
+  } else {
     history.pushState({ screen: screenId }, '', '');
   }
   
@@ -113,9 +115,22 @@ function showHomeScreen() {
 // ダッシュボード更新
 // ==========================================
 async function updateDashboard() {
+  // サマリーカードのデフォルト値をまず設定
+  var elActive = document.getElementById('dash-active-count');
+  var elPlanned = document.getElementById('dash-planned-count');
+  var elDone = document.getElementById('dash-done-count');
+  var listEl = document.getElementById('dash-active-list');
+
   try {
-    if (typeof getAllGenba !== 'function') return;
+    if (typeof getAllGenba !== 'function') {
+      console.warn('[Dashboard] getAllGenba未定義');
+      if (listEl) listEl.innerHTML = '<div style="background:white; border-radius:10px; padding:20px; text-align:center; color:#9ca3af; font-size:13px;">現場管理を準備中...</div>';
+      return;
+    }
+
     var genbaList = await getAllGenba();
+    console.log('[Dashboard] 現場データ取得:', genbaList.length, '件');
+
     var active = 0, planned = 0, done = 0;
     var activeList = [];
     for (var i = 0; i < genbaList.length; i++) {
@@ -124,22 +139,18 @@ async function updateDashboard() {
       else if (g.status === '予定') planned++;
       else if (g.status === '完了') done++;
     }
+
     // サマリーカード更新
-    var el;
-    el = document.getElementById('dash-active-count');
-    if (el) el.textContent = active;
-    el = document.getElementById('dash-planned-count');
-    if (el) el.textContent = planned;
-    el = document.getElementById('dash-done-count');
-    if (el) el.textContent = done;
+    if (elActive) elActive.textContent = active;
+    if (elPlanned) elPlanned.textContent = planned;
+    if (elDone) elDone.textContent = done;
 
     // 進行中リスト（最大3件）
-    var listEl = document.getElementById('dash-active-list');
     if (!listEl) return;
     if (activeList.length === 0) {
       listEl.innerHTML =
         '<div style="background:white; border-radius:10px; padding:20px; text-align:center; color:#9ca3af; font-size:13px;">' +
-          '進行中の現場はありません' +
+          (genbaList.length === 0 ? '現場を登録すると、ここに表示されます' : '進行中の現場はありません') +
         '</div>';
       return;
     }
@@ -157,7 +168,7 @@ async function updateDashboard() {
         }
       }
       html +=
-        '<div onclick="showScreen(\'genba\'); openGenbaForm(\'' + g.id + '\');" style="background:white; border-radius:10px; padding:12px 14px; margin-bottom:6px; cursor:pointer; display:flex; align-items:center; gap:12px; border-left:4px solid #f59e0b; box-shadow:0 1px 4px rgba(0,0,0,0.06);">' +
+        '<div onclick="showScreen(\'genba\');" style="background:white; border-radius:10px; padding:12px 14px; margin-bottom:6px; cursor:pointer; display:flex; align-items:center; gap:12px; border-left:4px solid #f59e0b; box-shadow:0 1px 4px rgba(0,0,0,0.06);">' +
           '<div style="font-size:24px;">🔨</div>' +
           '<div style="flex:1; min-width:0;">' +
             '<div style="font-size:14px; font-weight:bold; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + (typeof escapeHtml === 'function' ? escapeHtml(g.name) : g.name) + '</div>' +
@@ -172,8 +183,17 @@ async function updateDashboard() {
     listEl.innerHTML = html;
   } catch(e) {
     console.error('ダッシュボード更新エラー:', e);
+    // エラーでも「読み込み中...」から脱出する
+    if (elActive) elActive.textContent = '0';
+    if (elPlanned) elPlanned.textContent = '0';
+    if (elDone) elDone.textContent = '0';
+    if (listEl) listEl.innerHTML =
+      '<div style="background:white; border-radius:10px; padding:20px; text-align:center; color:#9ca3af; font-size:13px;">' +
+        '現場を登録すると、ここに表示されます' +
+      '</div>';
   }
 }
+window.updateDashboard = updateDashboard;
 
 // ==========================================
 // スプラッシュシーケンス
@@ -318,7 +338,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     if (typeof initAutoSave === 'function') initAutoSave();
   } catch(e) { console.error('initAutoSave error:', e); }
-  
+
+  // v1.0: 初期化完了後にダッシュボードを更新（スプラッシュ中でもデータ準備）
+  try {
+    await updateDashboard();
+  } catch(e) { console.error('updateDashboard error:', e); }
+
   console.log('✓ アプリ初期化完了 - 現場Pro 設備くん v1.0');
 });
 
@@ -335,6 +360,8 @@ window.addEventListener('popstate', function(event) {
   }
   window.scrollTo(0, 0);
   history.pushState({ screen: 'home' }, '', '');
+  // ホームに戻った時にダッシュボード更新
+  if (typeof updateDashboard === 'function') updateDashboard();
 });
 
 history.replaceState({ screen: 'home' }, '', '');
