@@ -1,0 +1,240 @@
+  <!-- ========== レシート読込画面 ========== -->
+  <!-- v0.95: OCR機能削除、AI一括解析に一本化 -->
+  <div id="receipt-screen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="showScreen('home')" title="ホームに戻る">🏠</button>
+      <h1>📷 レシート読込</h1>
+      <div style="width: 40px;"></div>
+    </div>
+    
+    <div class="form-container">
+      <!-- 画像選択エリア -->
+      <div class="form-section">
+        <h2>■ レシート画像</h2>
+        <div class="image-select-area">
+          <input type="file" id="receiptImage" accept="image/*" capture="environment" onchange="handleImageSelect(event)" style="display: none;">
+          <input type="file" id="receiptGallery" accept="image/*" onchange="handleImageSelect(event)" style="display: none;">
+          <input type="file" id="receiptAddImage" accept="image/*" onchange="handleAddImageSelect(event)" style="display: none;">
+          <!-- v0.95追加: 複数枚一括選択用 -->
+          <input type="file" id="receiptMultiSelect" accept="image/*" multiple onchange="handleMultiImageSelect(event)" style="display: none;">
+          
+          <!-- v0.95: 画像選択エリア（2分割レイアウト） -->
+          <div style="display: flex; gap: 8px; margin-bottom: 8px; height: 90px;">
+            <!-- 左: ギャラリーから選択 -->
+            <div id="imagePreviewArea" onclick="document.getElementById('receiptGallery').click()" 
+              style="flex: 1; border: 2px dashed #c4b5fd; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: linear-gradient(135deg, #f5f3ff, #ede9fe); overflow: hidden; position: relative;">
+              <div id="imagePlaceholder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+                <span style="font-size: 28px;">🧾</span>
+                <span style="font-size: 13px; color: #7c3aed; font-weight: 500;">レシートを選択</span>
+              </div>
+              <img id="imagePreview" style="display: none; width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+            </div>
+            <!-- 右: カメラ撮影 -->
+            <div onclick="document.getElementById('receiptImage').click()" 
+              style="flex: 1; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; gap: 4px;">
+              <span style="font-size: 28px;">📷</span>
+              <span style="font-size: 13px; color: white; font-weight: 600;">カメラ</span>
+            </div>
+          </div>
+          
+          <!-- 追加(2/3) + クリア(1/3) -->
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <button class="image-btn gallery" onclick="document.getElementById('receiptAddImage').click()" 
+              style="flex: 2; padding: 10px; background: linear-gradient(135deg, #8b5cf6, #a78bfa); border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 600; cursor: pointer;">
+              ＋ 追加
+            </button>
+            <button class="image-btn gallery" onclick="clearAllImages()" 
+              style="flex: 1; padding: 10px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 8px; border: none; color: white; font-size: 14px; font-weight: 600; cursor: pointer;">
+              🗑️
+            </button>
+          </div>
+          
+          <!-- 複数画像サムネイルエリア -->
+          <div id="multiImageArea" style="display: none; margin-bottom: 8px;">
+            <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">
+              📸 選択した画像（×で削除）
+            </div>
+            <div id="multiImageThumbnails" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;"></div>
+            <div style="margin-top: 8px; padding: 8px; background: #fef3c7; border-radius: 8px; font-size: 11px; color: #92400e;">
+              💡 複数枚は自動で縦に結合されてAIに送信されます
+            </div>
+          </div>
+          
+          <!-- v0.95: 一括選択ボタン追加 -->
+          <button class="ocr-btn" onclick="document.getElementById('receiptMultiSelect').click()" style="background: linear-gradient(135deg, #10b981, #059669); margin-top: 8px;">
+            📁 複数枚まとめて選択
+          </button>
+          
+          <!-- v0.95: OCRボタン削除、AIボタンのみ -->
+          <button class="ocr-btn" id="aiBtn" onclick="runAiOcr()" disabled style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); margin-top: 8px;">
+            🤖 AIで読み取る（Gemini）
+          </button>
+          <button class="ocr-btn" onclick="startVoiceCommand('receipt')" style="background: linear-gradient(135deg, #f59e0b, #d97706); margin-top: 8px;">
+            🎤 音声で修正
+          </button>
+        </div>
+      </div>
+      
+      <!-- 基本情報 -->
+      <div class="form-section">
+        <h2>■ 基本情報</h2>
+        <!-- v0.94追加: お客様名（工務店名など） -->
+        <div class="form-group">
+          <label>お客様名（工務店名など）</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="receiptCustomerName" placeholder="例：山田工務店" style="flex: 1;">
+            <button class="voice-input-btn" onclick="startVoiceInput('receiptCustomerName')" title="音声入力">🎤</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>店名</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="receiptStoreName" placeholder="〇〇ホームセンター" style="flex: 1;">
+            <button class="voice-input-btn" onclick="startVoiceInput('receiptStoreName')" title="音声入力">🎤</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>日付</label>
+          <input type="date" id="receiptDate">
+        </div>
+      </div>
+      
+      <!-- 品目リスト -->
+      <div class="form-section">
+        <h2>■ 品目リスト</h2>
+        
+        <!-- 現場割り当てセクション -->
+        <div id="assignSection" class="assign-section" style="display: none;">
+          <!-- ★ 新規現場入力欄（選択の上に配置） -->
+          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
+            <input type="text" id="newProjectName" placeholder="新しい現場名を入力..." 
+              style="flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;"
+              onkeypress="if(event.key==='Enter')addNewProject()">
+            <button onclick="addNewProject()" 
+              style="padding: 8px 14px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+              ＋ 追加
+            </button>
+          </div>
+          <!-- 選択・割当・解除 -->
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; color: #6b7280; cursor: pointer;">
+              <input type="checkbox" id="selectAllItems" onchange="toggleAllCheckboxes(this.checked)" style="width: 18px; height: 18px; accent-color: #3b82f6;">
+              全選択
+            </label>
+            <select id="projectSelect" class="project-select">
+              <option value="">現場を選択...</option>
+            </select>
+            <button class="assign-btn" onclick="assignSelectedItems()">✔ 割当</button>
+            <button class="clear-assign-btn" onclick="clearSelectedAssignments()">✕ 解除</button>
+          </div>
+          <div id="assignedCount" style="font-size: 12px; color: #6b7280; margin-top: 8px;"></div>
+        </div>
+        
+        <div id="receiptItemsList">
+          <!-- 品目がここに追加される -->
+        </div>
+        <button class="add-item-btn" onclick="addReceiptItem()">
+          ＋ 品目を追加
+        </button>
+      </div>
+      
+      <!-- 合計表示 -->
+      <div class="form-section">
+        <div class="receipt-total">
+          <span>合計金額:</span>
+          <span id="receiptTotal">¥0</span>
+        </div>
+      </div>
+      
+      <!-- 画像保存オプション -->
+      <div class="form-section">
+        <div class="form-group checkbox">
+          <input type="checkbox" id="saveReceiptImage" checked>
+          <label>レシート画像を保存する</label>
+        </div>
+      </div>
+    </div>
+    
+    <div class="save-bar">
+      <div style="display: flex; gap: 8px; width: 100%;">
+        <button style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;"
+          onclick="if(typeof showReceiptHistory==='function'){showReceiptHistory()}else{alert('履歴機能を読み込み中...\nreceipt-history.jsがindex.htmlに追加されているか確認してください')}">📋 履歴</button>
+        <button style="flex: 1; padding: 14px; background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;"
+          onclick="if(confirm('入力内容をリセットしますか？'))resetReceiptForm()">🔄 リセット</button>
+        <button class="save-btn" style="flex: 2;" onclick="saveReceipt()">仕訳を保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ v0.93: レシート→見積もり/請求書 連携モーダル -->
+  <div id="receiptDocFlowModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 16px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; padding: 0;">
+      
+      <!-- ヘッダー -->
+      <div style="padding: 20px 20px 12px; border-bottom: 1px solid #e5e7eb;">
+        <h3 id="docFlowTitle" style="margin: 0; font-size: 18px; color: #1f2937;">📋 書類に反映</h3>
+        <div id="docFlowSubtitle" style="font-size: 13px; color: #6b7280; margin-top: 4px;"></div>
+      </div>
+      
+      <!-- コンテンツ（JSで動的に変更） -->
+      <div id="docFlowContent" style="padding: 16px 20px;">
+      </div>
+      
+      <!-- フッター -->
+      <div id="docFlowFooter" style="padding: 12px 20px 20px; border-top: 1px solid #e5e7eb;">
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ v0.94.1: レシート履歴一覧モーダル -->
+  <div id="receiptHistoryModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9998; align-items: center; justify-content: center;">
+    <div style="background: #f9fafb; border-radius: 16px; width: 95%; max-width: 440px; max-height: 85vh; display: flex; flex-direction: column;">
+      <!-- ヘッダー -->
+      <div style="padding: 20px 20px 12px; border-bottom: 1px solid #e5e7eb; background: white; border-radius: 16px 16px 0 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0; font-size: 18px; color: #1f2937;">📋 レシート履歴</h3>
+          <button onclick="closeReceiptHistory()" style="background: none; border: none; font-size: 24px; color: #6b7280; cursor: pointer;">✕</button>
+        </div>
+        <div style="margin-top: 10px;">
+          <input type="text" id="receiptHistorySearch" placeholder="🔍 店名・品名・現場で検索..."
+            oninput="filterReceiptHistory()"
+            style="width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+        </div>
+      </div>
+      <!-- リスト -->
+      <div id="receiptHistoryList" style="flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ v0.94.1: レシート履歴詳細モーダル -->
+  <div id="receiptHistoryDetailModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 16px; width: 95%; max-width: 440px; max-height: 85vh; display: flex; flex-direction: column;">
+      <!-- ヘッダー -->
+      <div style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 18px; color: #1f2937;">📄 レシート詳細</h3>
+        <button onclick="closeReceiptHistoryDetail()" style="background: none; border: none; font-size: 24px; color: #6b7280; cursor: pointer;">✕</button>
+      </div>
+      <!-- コンテンツ -->
+      <div id="receiptHistoryDetailContent" style="flex: 1; overflow-y: auto; padding: 16px 20px;">
+      </div>
+      <!-- フッター -->
+      <div style="padding: 12px 20px 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 8px;">
+        <button onclick="deleteReceiptHistory(window._currentHistoryId)"
+          style="padding: 12px; background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; border-radius: 8px; font-size: 13px; cursor: pointer;">
+          🗑️
+        </button>
+        <button onclick="reloadFromHistory()"
+          style="flex: 1; padding: 12px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+          📷 レシートに読み込む
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ v0.94.1: レシート画像フルスクリーン表示 -->
+  <div id="receiptImageViewer" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10001; align-items: center; justify-content: center;"
+       onclick="closeReceiptImageViewer()">
+    <img id="receiptImageFullView" style="max-width: 95%; max-height: 90vh; object-fit: contain; border-radius: 4px;">
+    <div style="position: absolute; top: 16px; right: 16px; color: white; font-size: 32px; cursor: pointer;">✕</div>
+  </div>

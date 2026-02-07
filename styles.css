@@ -1,0 +1,1705 @@
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ============================================ */
+    /* レシートリスト画面 v0.95追加                    */
+    /* ============================================ */
+
+    /* ソート切替ボタン */
+    .receipt-sort-btn {
+      padding: 6px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 20px;
+      background: white;
+      font-size: 12px;
+      color: #6b7280;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .receipt-sort-btn.active {
+      background: #8b5cf6;
+      color: white;
+      border-color: #8b5cf6;
+    }
+
+    /* レシートリストカード */
+    .receipt-list-card {
+      padding: 14px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: box-shadow 0.2s;
+    }
+    .receipt-list-card:active {
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      background-color: #f3f4f6;
+      min-height: 100vh;
+    }
+    
+    /* ============================================ */
+    /* スプラッシュ画面 - COCOMI SPLASH DEMO v2.0   */
+    /* ============================================ */
+
+    /* COCOMI COREスプラッシュ（1段階目） */
+    #cocomi-splash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 1;
+      transition: opacity 0.8s ease;
+      overflow: hidden;
+    }
+    
+    #cocomi-splash.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    /* 銀河画像の上に被せるオーバーレイ（やや透過） */
+    #cocomi-splash::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.35) 100%);
+      z-index: 1;
+    }
+    
+    /* 銀河背景画像（共通） */
+    .cocomi-galaxy, .perafca-galaxy {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+    
+    .cocomi-galaxy img, .perafca-galaxy img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    /* COCOMIコンテンツラッパー */
+    .cocomi-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .cocomi-title {
+      font-size: 36px;
+      font-weight: 300;
+      letter-spacing: 12px;
+      color: #ffffff;
+      text-shadow: 
+        0 0 5px #00d4ff,
+        0 0 10px #00d4ff,
+        0 0 20px #00d4ff,
+        0 0 40px #00d4ff,
+        0 0 60px #00d4ff,
+        0 0 80px rgba(0, 212, 255, 0.8);
+      margin-bottom: 36px;
+      animation: text-glow 2s ease-in-out infinite;
+    }
+    
+    @keyframes text-glow {
+      0%, 100% { 
+        text-shadow: 
+          0 0 5px #00d4ff,
+          0 0 10px #00d4ff,
+          0 0 20px #00d4ff,
+          0 0 40px #00d4ff,
+          0 0 60px #00d4ff,
+          0 0 80px rgba(0, 212, 255, 0.8);
+      }
+      50% { 
+        text-shadow: 
+          0 0 10px #00ffff,
+          0 0 20px #00ffff,
+          0 0 40px #00ffff,
+          0 0 80px #00d4ff,
+          0 0 120px #00d4ff,
+          0 0 180px rgba(0, 212, 255, 0.9);
+      }
+    }
+    
+    .cocomi-philosophy {
+      font-size: 18px;
+      color: rgba(255,255,255,0.95);
+      text-align: center;
+      line-height: 2.4;
+      margin-bottom: 40px;
+      text-shadow: 0 0 10px rgba(255,255,255,0.3);
+      font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    }
+    
+    .cocomi-heartbeat {
+      width: 240px;
+      height: 50px;
+      margin-bottom: 40px;
+    }
+    
+    .cocomi-heartbeat svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 0 8px #00d4ff);
+    }
+    
+    .heartbeat-line {
+      fill: none;
+      stroke: #00d4ff;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-dasharray: 300;
+      stroke-dashoffset: 300;
+      animation: heartbeat-draw 2s ease-in-out infinite;
+    }
+    
+    @keyframes heartbeat-draw {
+      0% { stroke-dashoffset: 300; }
+      50% { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: -300; }
+    }
+    
+    .cocomi-subtitle {
+      font-size: 13px;
+      color: rgba(255,255,255,0.8);
+      letter-spacing: 3px;
+      margin-bottom: 8px;
+    }
+    
+    .cocomi-perafca {
+      font-size: 12px;
+      color: rgba(0, 212, 255, 0.9);
+      letter-spacing: 2px;
+      margin-bottom: 24px;
+      text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    }
+    
+    .cocomi-credit {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .cocomi-credit span {
+      color: #00d4ff;
+      text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    }
+    
+    /* ★ ピンクハート（小）★ */
+    .mini-heart {
+      width: 14px;
+      height: 14px;
+      display: inline-block;
+      vertical-align: middle;
+      filter: drop-shadow(0 0 4px #ff69b4)
+              drop-shadow(0 0 8px rgba(255, 105, 180, 0.6));
+    }
+    
+    .mini-heart path {
+      fill: none;
+      stroke: #ff69b4;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* PERAFCAスプラッシュ（2段階目） */
+    #perafca-splash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.8s ease;
+      overflow: hidden;
+    }
+    
+    #perafca-splash::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.35) 100%);
+      z-index: 1;
+    }
+    
+    .perafca-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    #perafca-splash.active {
+      opacity: 1;
+      pointer-events: auto;
+      z-index: 10001;
+    }
+    
+    #perafca-splash.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .perafca-title {
+      font-size: 36px;
+      font-weight: bold;
+      color: #00d4ff;
+      letter-spacing: 6px;
+      margin-bottom: 50px;
+      text-shadow: 
+        0 0 20px rgba(0, 212, 255, 0.8),
+        0 0 40px rgba(0, 212, 255, 0.5),
+        0 0 60px rgba(0, 212, 255, 0.3);
+      animation: neonPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes neonPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+    
+    .perafca-items {
+      text-align: left;
+      margin-bottom: 40px;
+    }
+    
+    .perafca-item {
+      font-size: 17px;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+    
+    .perafca-key {
+      color: #00d4ff;
+      font-weight: bold;
+      text-shadow: 0 0 10px rgba(0, 212, 255, 0.6);
+    }
+    
+    .perafca-tagline {
+      font-size: 20px;
+      color: #00d4ff;
+      margin-top: 16px;
+      letter-spacing: 3px;
+      text-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    /* ★ ピンクハート（大・tagline用）★ */
+    .tagline-heart {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      vertical-align: middle;
+      filter: drop-shadow(0 0 4px #ff69b4)
+              drop-shadow(0 0 8px rgba(255, 105, 180, 0.6))
+              drop-shadow(0 0 12px rgba(255, 105, 180, 0.4));
+    }
+    
+    .tagline-heart path {
+      fill: none;
+      stroke: #ff69b4;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* アプリスプラッシュ（3段階目） */
+    #splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    #splash-screen.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    #splash-screen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    #splash-screen .splash-icon {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 24px;
+      animation: splash-bounce 1s ease infinite;
+    }
+    
+    #splash-screen .splash-title {
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    
+    #splash-screen .splash-subtitle {
+      color: rgba(255,255,255,0.8);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+    
+    #splash-screen .splash-loading {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: splash-spin 1s linear infinite;
+    }
+    
+    @keyframes splash-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    @keyframes splash-spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* ヘッダー */
+    .header {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .header h1 {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    
+    .header-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    
+    .header-btn:active {
+      background: rgba(255,255,255,0.3);
+    }
+    
+    .back-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 8px;
+      margin-left: -8px;
+    }
+    
+    /* メニューグリッド */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      padding: 16px;
+    }
+    
+    .menu-btn {
+      border: none;
+      border-radius: 16px;
+      padding: 24px 16px;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: transform 0.1s;
+    }
+    
+    .menu-btn:active {
+      transform: scale(0.95);
+    }
+
+    .site-search-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 14px 16px;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.1s;
+    }
+    
+    .site-search-btn:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+    
+    
+    
+    .menu-btn .icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    
+    .menu-btn.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .menu-btn.green { background: linear-gradient(135deg, #22c55e, #16a34a); }
+    .menu-btn.purple { background: linear-gradient(135deg, #a855f7, #9333ea); }
+    .menu-btn.orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+    .menu-btn.pink { background: linear-gradient(135deg, #ec4899, #db2777); }
+    .menu-btn.teal { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+    .menu-btn.cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+    .menu-btn.tax { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+    
+    /* 出力ミニボタン */
+    .output-btn-mini {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 8px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .output-btn-mini:hover, .output-btn-mini:active {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    
+    .output-btn-mini span:first-child {
+      font-size: 24px;
+    }
+    
+    .output-btn-mini span:last-child {
+      font-size: 12px;
+      color: #374151;
+      font-weight: 500;
+    }
+    
+    /* 画面コンテナ */
+    .screen {
+      display: none;
+    }
+    
+    .screen.active {
+      display: block;
+    }
+    
+    /* フォーム */
+    .form-container {
+      padding: 16px;
+      padding-bottom: 100px;
+    }
+    
+    .form-section {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    
+    .form-section h2 {
+      font-size: 16px;
+      font-weight: bold;
+      color: #1f2937;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 16px;
+      outline: none;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    
+    .form-group.checkbox {
+      display: flex;
+      align-items: center;
+    }
+    
+    .form-group.checkbox input {
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+    }
+    
+    .form-group.checkbox label {
+      margin-bottom: 0;
+    }
+    
+    .yen-input {
+      position: relative;
+    }
+    
+    .yen-input::before {
+      content: '¥';
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #6b7280;
+    }
+    
+    .yen-input input {
+      padding-left: 28px;
+    }
+    
+    /* 保存ボタン */
+    .save-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      padding: 16px;
+      border-top: 1px solid #e5e7eb;
+      z-index: 100;
+      display: none; /* v0.96: デフォルト非表示。settings画面表示時にJSで表示 */
+    }
+    
+    .save-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .save-btn:active {
+      opacity: 0.9;
+    }
+    
+    .save-btn.saved {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+    }
+    
+    /* 準備中画面 */
+    .coming-soon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 60vh;
+      color: #6b7280;
+    }
+    
+    .coming-soon .emoji {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+    
+    .coming-soon p {
+      font-size: 18px;
+      font-weight: 500;
+    }
+    
+    .coming-soon small {
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    
+    /* フッター */
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+      padding: 12px;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+    
+    /* データ管理ボタン */
+    .data-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    
+    .data-btn:last-child {
+      margin-bottom: 0;
+    }
+    
+    .data-btn.backup {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .data-btn.danger {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+    
+    .data-btn:active {
+      opacity: 0.8;
+    }
+    
+    /* レシート読込画面用スタイル */
+    .image-select-area {
+      margin-bottom: 16px;
+    }
+    
+    .image-preview-area {
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 12px;
+      background: #f9fafb;
+      min-height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    
+    .image-preview-area:active {
+      background: #f3f4f6;
+    }
+    
+    .image-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #9ca3af;
+    }
+    
+    .placeholder-icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+    
+    .image-preview {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 8px;
+    }
+    
+    .image-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    
+    .image-btn {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    .image-btn.camera {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .image-btn.gallery {
+      background: #e5e7eb;
+      color: #374151;
+    }
+    
+    .image-btn:active {
+      opacity: 0.8;
+    }
+    
+    /* 品目アイテム */
+    .receipt-item {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    
+    .receipt-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .receipt-item-number {
+      font-weight: bold;
+      color: #3b82f6;
+    }
+    
+    .receipt-item-delete {
+      background: #fee2e2;
+      color: #dc2626;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    
+    .receipt-item-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    
+    .receipt-item-row > * {
+      min-width: 0;
+    }
+    
+    .receipt-item-row input {
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+    
+    .receipt-item-row input:focus {
+      border-color: #3b82f6;
+      outline: none;
+    }
+    
+    .receipt-item-type {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .type-btn {
+      flex: 1;
+      padding: 8px;
+      border: 2px solid #e5e7eb;
+      border-radius: 6px;
+      background: white;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .type-btn.active {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      color: #3b82f6;
+      font-weight: bold;
+    }
+    
+    .type-btn:active {
+      opacity: 0.8;
+    }
+    
+    .receipt-item-category {
+      width: 100%;
+    }
+    
+    .receipt-item-category select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+    }
+    
+    .add-item-btn {
+      width: 100%;
+      padding: 14px;
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      background: white;
+      color: #6b7280;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    .add-item-btn:active {
+      background: #f9fafb;
+    }
+    
+    .receipt-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    
+    .receipt-total span:last-child {
+      color: #3b82f6;
+      font-size: 24px;
+    }
+    
+    /* OCR関連スタイル */
+    .ocr-loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      color: white;
+    }
+    
+    .ocr-loading.hidden {
+      display: none;
+    }
+    
+    .ocr-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid #ffffff30;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .ocr-progress {
+      font-size: 14px;
+      color: #9ca3af;
+      margin-top: 8px;
+    }
+    
+    .ocr-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    
+    .ocr-btn:active {
+      opacity: 0.8;
+    }
+    
+    .ocr-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    
+    /* 品名候補ポップアップ */
+    .name-suggest {
+      background: #eff6ff;
+      border: 1px solid #3b82f6;
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 4px;
+      font-size: 12px;
+    }
+    
+    .name-suggest-title {
+      color: #3b82f6;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    
+    .name-suggest-item {
+      padding: 8px;
+      background: white;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .name-suggest-item:active {
+      background: #dbeafe;
+    }
+    
+    .name-suggest-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .name-suggest-new {
+      color: #6b7280;
+      font-style: italic;
+    }
+    
+    /* 品名マスター画面 */
+    .master-item {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .master-item-name {
+      font-weight: bold;
+      font-size: 16px;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+    
+    .master-item-category {
+      display: inline-block;
+      background: #eff6ff;
+      color: #3b82f6;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    
+    .master-item-aliases {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .alias-tag {
+      display: inline-block;
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin: 2px;
+      font-size: 11px;
+    }
+    
+    .master-item-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    
+    .master-btn {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    
+    .master-btn.edit {
+      background: #eff6ff;
+      color: #3b82f6;
+    }
+    
+    .master-btn.delete {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+    
+    /* 検索ボックス */
+    .search-box {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    
+    .search-box input {
+      width: 100%;
+      padding: 12px 12px 12px 40px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    
+    .search-box::before {
+      content: '🔍';
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    /* タブ */
+    .tab-bar {
+      display: flex;
+      background: #e5e7eb;
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 16px;
+    }
+    
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      font-size: 14px;
+      cursor: pointer;
+      color: #6b7280;
+    }
+    
+    .tab-btn.active {
+      background: white;
+      color: #1f2937;
+      font-weight: bold;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    /* 品名サジェスト */
+    .suggest-container {
+      position: relative;
+      min-width: 0;
+      width: 100%;
+    }
+    
+    .suggest-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 100;
+      display: none;
+    }
+    
+    .suggest-dropdown.show {
+      display: block;
+    }
+    
+    .suggest-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .suggest-item:last-child {
+      border-bottom: none;
+    }
+    
+    .suggest-item:active {
+      background: #eff6ff;
+    }
+    
+    .suggest-item-name {
+      font-weight: 500;
+      color: #1f2937;
+    }
+    
+    .suggest-item-category {
+      font-size: 11px;
+      color: #6b7280;
+    }
+    
+    .suggest-item-price {
+      font-size: 12px;
+      color: #3b82f6;
+      float: right;
+    }
+    
+    /* 見積書作成画面用スタイル */
+    .type-btn-group {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .type-btn-group .type-btn {
+      flex: 1;
+      padding: 12px;
+    }
+    
+    .subtotal-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      margin-top: 12px;
+      border-top: 1px solid #e5e7eb;
+      font-weight: 500;
+    }
+    
+    .subtotal-row span:last-child {
+      color: #3b82f6;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    
+    .total-display {
+      padding: 8px 0;
+    }
+    
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 16px;
+    }
+    
+    .total-row.grand-total {
+      border-top: 2px solid #3b82f6;
+      margin-top: 8px;
+      padding-top: 12px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    
+    .total-row.grand-total span:last-child {
+      color: #3b82f6;
+      font-size: 24px;
+    }
+    
+    /* 見積もり品目 */
+    .estimate-item {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .estimate-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .estimate-item-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .estimate-item-row.work-row {
+      grid-template-columns: 2fr 1fr 1fr;
+    }
+    
+    .estimate-item-row input {
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 100%;
+    }
+    
+    .estimate-item-row input:focus {
+      border-color: #3b82f6;
+      outline: none;
+    }
+    
+    .estimate-item-amount {
+      text-align: right;
+      font-weight: bold;
+      color: #1f2937;
+      padding: 10px;
+      background: white;
+      border-radius: 6px;
+    }
+    
+    /* 出力ボタン */
+    .output-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      text-align: left;
+      cursor: pointer;
+      width: 100%;
+    }
+    
+    .output-btn:active {
+      background: #f9fafb;
+    }
+    
+    .output-icon {
+      font-size: 32px;
+    }
+    
+    .output-info {
+      flex: 1;
+    }
+    
+    .output-title {
+      font-weight: bold;
+      font-size: 16px;
+      color: #1f2937;
+    }
+    
+    .output-desc {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    
+    /* 材料選択リスト */
+    .picker-item {
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    
+    .picker-item:active {
+      background: #eff6ff;
+      border-color: #3b82f6;
+    }
+    
+    .picker-item-name {
+      font-weight: 500;
+      color: #1f2937;
+    }
+    
+    .picker-item-detail {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    
+    .picker-item-price {
+      color: #3b82f6;
+      font-weight: bold;
+    }
+    
+    /* 経費アイテム */
+    .expense-item {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .expense-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    
+    .expense-item-name {
+      font-weight: 500;
+      color: #1f2937;
+    }
+    
+    .expense-item-amount {
+      font-weight: bold;
+      color: #d97706;
+      font-size: 16px;
+    }
+    
+    .expense-item-detail {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .expense-item-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    
+    /* データリストアイテム */
+    .data-list-item {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+    
+    .data-list-item:active {
+      background: #f9fafb;
+    }
+    
+    .data-list-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    
+    .data-list-item-number {
+      font-weight: bold;
+      color: #3b82f6;
+    }
+    
+    .data-list-item-status {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    
+    .data-list-item-status.draft {
+      background: #fef3c7;
+      color: #d97706;
+    }
+    
+    .data-list-item-status.completed {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+    
+    .data-list-item-title {
+      font-weight: 500;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+    
+    .data-list-item-detail {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .data-list-item-amount {
+      font-size: 16px;
+      font-weight: bold;
+      color: #1f2937;
+      text-align: right;
+      margin-top: 4px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      color: #9ca3af;
+      padding: 40px 20px;
+    }
+    
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+    
+    /* テンプレート選択 */
+    .template-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+    }
+    
+    .template-option input {
+      display: none;
+    }
+    
+    .template-preview {
+      width: 70px;
+      height: 90px;
+      border: 2px solid #d1d5db;
+      border-radius: 4px;
+      padding: 6px;
+      background: white;
+      transition: all 0.2s;
+    }
+    
+    .template-option input:checked + .template-preview {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    
+    .template-option span {
+      font-size: 11px;
+      margin-top: 4px;
+      color: #6b7280;
+    }
+    
+    .template-option input:checked ~ span {
+      color: #3b82f6;
+      font-weight: bold;
+    }
+    
+    /* ==========================================
+       音声入力ボタン - COCOMIカラー
+       ========================================== */
+    .voice-input-btn {
+      background: linear-gradient(135deg, #001a1a, #002a2a);
+      color: #00d4ff;
+      border: 2px solid #00d4ff;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.3s;
+      min-width: 44px;
+      text-shadow: 0 0 8px #00d4ff;
+      box-shadow: 
+        0 0 10px rgba(0, 212, 255, 0.3),
+        inset 0 0 10px rgba(0, 212, 255, 0.1);
+    }
+    
+    .voice-input-btn:hover {
+      background: linear-gradient(135deg, #002a2a, #003a3a);
+      box-shadow: 
+        0 0 20px rgba(0, 212, 255, 0.5),
+        inset 0 0 15px rgba(0, 212, 255, 0.2);
+      transform: scale(1.05);
+    }
+    
+    .voice-input-btn:active {
+      transform: scale(0.95);
+      box-shadow: 
+        0 0 30px rgba(0, 212, 255, 0.7),
+        inset 0 0 20px rgba(0, 212, 255, 0.3);
+    }
+    
+    /* イコライザーアニメーション */
+    @keyframes equalize {
+      0%, 100% { height: 20%; }
+      50% { height: 100%; }
+    }
+    
+    .equalizer-bar {
+      border-radius: 2px;
+    }
+
+/* ==========================================
+   レシート機能 追加スタイル (v0.92)
+   - チェックボックス
+   - 現場割り当てセクション
+   - プロジェクトバッジ
+   ========================================== */
+
+/* 現場割り当てセクション */
+.assign-section {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.project-select {
+  flex: 1;
+  min-width: 120px;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+}
+
+.assign-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.assign-btn:active {
+  transform: scale(0.98);
+}
+
+.clear-assign-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.clear-assign-btn:active {
+  transform: scale(0.98);
+}
+
+/* 品目のチェック状態 */
+.receipt-item.checked {
+  background: #eff6ff;
+  border-color: #3b82f6;
+}
+
+/* チェックボックス */
+.item-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* 現場バッジ */
+.project-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 400px) {
+  .assign-section > div {
+    flex-direction: column;
+    gap: 8px !important;
+  }
+  
+  .assign-section > div > * {
+    width: 100%;
+  }
+  
+  .assign-btn,
+  .clear-assign-btn {
+    flex: 1;
+  }
+}
+
+/* ============================================ */
+/* v0.95.1追加: 保存データ一覧の時刻表示        */
+/* ============================================ */
+
+/* 保存時刻の表示 */
+.data-list-item-time {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
