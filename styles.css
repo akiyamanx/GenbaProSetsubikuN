@@ -6,6 +6,27 @@
     }
 
     /* ============================================ */
+    /* 現場管理・工程表 v1.0追加                       */
+    /* ============================================ */
+    .genba-filter-btn {
+      padding: 8px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 20px;
+      background: white;
+      font-size: 13px;
+      font-weight: bold;
+      color: #6b7280;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .genba-filter-btn.active {
+      background: #f59e0b;
+      color: white;
+      border-color: #f59e0b;
+    }
+
+    /* ============================================ */
     /* レシートリスト画面 v0.95追加                    */
     /* ============================================ */
 

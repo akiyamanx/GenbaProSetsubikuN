@@ -1,6 +1,6 @@
 // ==========================================
-// Reform App Pro - コア機能
-// v0.95 - スプラッシュ白画面防止 + シームレス切替
+// 現場Pro 設備くん - コア機能
+// v1.0 - CULOchanKAIKEIproからフォーク
 // ==========================================
 
 // ==========================================
@@ -65,6 +65,14 @@ async function showScreen(screenId) {
   if (screenId === 'receipt-list') {
     if (typeof initReceiptList === 'function') initReceiptList();
   }
+  // v1.0追加: 現場管理画面の初期化
+  if (screenId === 'genba') {
+    if (typeof initGenbaScreen === 'function') initGenbaScreen();
+  }
+  // v1.0追加: 工程表画面の初期化
+  if (screenId === 'koutei') {
+    if (typeof initKouteiScreen === 'function') initKouteiScreen();
+  }
   if (screenId === 'tax') {
     if (typeof selectTaxType === 'function') {
       const savedTaxType = localStorage.getItem('reform_app_tax_type') || 'blue';
@@ -86,7 +94,7 @@ async function showScreen(screenId) {
 function showHomeScreen() {
   // ★ body背景を元に戻す
   document.body.style.backgroundColor = '#f3f4f6';
-  
+
   const homeScreen = document.getElementById('home-screen');
   if (homeScreen) {
     homeScreen.classList.add('active');
@@ -96,6 +104,74 @@ function showHomeScreen() {
   }
   if (typeof checkPasswordOnLoad === 'function') {
     checkPasswordOnLoad();
+  }
+  // ダッシュボード更新
+  updateDashboard();
+}
+
+// ==========================================
+// ダッシュボード更新
+// ==========================================
+async function updateDashboard() {
+  try {
+    if (typeof getAllGenba !== 'function') return;
+    var genbaList = await getAllGenba();
+    var active = 0, planned = 0, done = 0;
+    var activeList = [];
+    for (var i = 0; i < genbaList.length; i++) {
+      var g = genbaList[i];
+      if (g.status === '進行中') { active++; activeList.push(g); }
+      else if (g.status === '予定') planned++;
+      else if (g.status === '完了') done++;
+    }
+    // サマリーカード更新
+    var el;
+    el = document.getElementById('dash-active-count');
+    if (el) el.textContent = active;
+    el = document.getElementById('dash-planned-count');
+    if (el) el.textContent = planned;
+    el = document.getElementById('dash-done-count');
+    if (el) el.textContent = done;
+
+    // 進行中リスト（最大3件）
+    var listEl = document.getElementById('dash-active-list');
+    if (!listEl) return;
+    if (activeList.length === 0) {
+      listEl.innerHTML =
+        '<div style="background:white; border-radius:10px; padding:20px; text-align:center; color:#9ca3af; font-size:13px;">' +
+          '進行中の現場はありません' +
+        '</div>';
+      return;
+    }
+    var html = '';
+    var max = Math.min(activeList.length, 3);
+    for (var i = 0; i < max; i++) {
+      var g = activeList[i];
+      var dateStr = '';
+      if (g.startDate) {
+        var parts = g.startDate.split('-');
+        dateStr = parseInt(parts[1]) + '/' + parseInt(parts[2]);
+        if (g.endDate) {
+          var parts2 = g.endDate.split('-');
+          dateStr += ' 〜 ' + parseInt(parts2[1]) + '/' + parseInt(parts2[2]);
+        }
+      }
+      html +=
+        '<div onclick="showScreen(\'genba\'); openGenbaForm(\'' + g.id + '\');" style="background:white; border-radius:10px; padding:12px 14px; margin-bottom:6px; cursor:pointer; display:flex; align-items:center; gap:12px; border-left:4px solid #f59e0b; box-shadow:0 1px 4px rgba(0,0,0,0.06);">' +
+          '<div style="font-size:24px;">🔨</div>' +
+          '<div style="flex:1; min-width:0;">' +
+            '<div style="font-size:14px; font-weight:bold; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + (typeof escapeHtml === 'function' ? escapeHtml(g.name) : g.name) + '</div>' +
+            (dateStr ? '<div style="font-size:11px; color:#9ca3af;">📅 ' + dateStr + '</div>' : '') +
+          '</div>' +
+          '<div style="font-size:20px; color:#d1d5db;">›</div>' +
+        '</div>';
+    }
+    if (activeList.length > 3) {
+      html += '<div style="text-align:center; padding:8px; font-size:12px; color:#9ca3af;">他 ' + (activeList.length - 3) + ' 件</div>';
+    }
+    listEl.innerHTML = html;
+  } catch(e) {
+    console.error('ダッシュボード更新エラー:', e);
   }
 }
 
@@ -243,7 +319,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof initAutoSave === 'function') initAutoSave();
   } catch(e) { console.error('initAutoSave error:', e); }
   
-  console.log('✓ アプリ初期化完了 v0.96');
+  console.log('✓ アプリ初期化完了 - 現場Pro 設備くん v1.0');
 });
 
 // ==========================================

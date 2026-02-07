@@ -1,0 +1,86 @@
+  <!-- ========== 現場管理画面 ========== -->
+  <div id="genba-screen" class="screen">
+    <div class="header" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+      <button class="back-btn" onclick="showScreen('home')">←</button>
+      <h1>現場管理</h1>
+      <button class="header-btn" onclick="openGenbaForm()">＋</button>
+    </div>
+
+    <!-- フィルタータブ -->
+    <div style="display: flex; gap: 8px; padding: 12px 16px; overflow-x: auto;">
+      <button class="genba-filter-btn active" onclick="filterGenba('all')" data-filter="all">すべて</button>
+      <button class="genba-filter-btn" onclick="filterGenba('進行中')" data-filter="進行中">進行中</button>
+      <button class="genba-filter-btn" onclick="filterGenba('予定')" data-filter="予定">予定</button>
+      <button class="genba-filter-btn" onclick="filterGenba('完了')" data-filter="完了">完了</button>
+    </div>
+
+    <!-- 現場一覧 -->
+    <div id="genba-list" style="padding: 0 16px 100px;">
+      <div style="text-align: center; padding: 40px; color: #9ca3af;">
+        読み込み中...
+      </div>
+    </div>
+
+    <!-- 現場登録/編集モーダル -->
+    <div id="genba-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:200; overflow-y:auto;">
+      <div style="background:white; margin:20px auto; max-width:500px; border-radius:16px; overflow:hidden;">
+        <div style="background:linear-gradient(135deg, #f59e0b, #d97706); color:white; padding:16px; display:flex; justify-content:space-between; align-items:center;">
+          <h2 id="genba-modal-title" style="font-size:18px; margin:0;">現場を登録</h2>
+          <button onclick="closeGenbaModal()" style="background:rgba(255,255,255,0.2); border:none; color:white; width:36px; height:36px; border-radius:50%; font-size:18px; cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:20px;">
+          <input type="hidden" id="genba-edit-id">
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">現場名 *</label>
+          <input type="text" id="genba-name" placeholder="例: 田中邸 浴室リフォーム"
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:16px;">
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">住所</label>
+          <input type="text" id="genba-address" placeholder="例: 東京都新宿区..."
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:16px;">
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">顧客名</label>
+          <input type="text" id="genba-client" placeholder="例: 田中太郎"
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:16px;">
+
+          <div style="display:flex; gap:12px; margin-bottom:16px;">
+            <div style="flex:1;">
+              <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">開始日</label>
+              <input type="date" id="genba-start"
+                style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px;">
+            </div>
+            <div style="flex:1;">
+              <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">終了日</label>
+              <input type="date" id="genba-end"
+                style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px;">
+            </div>
+          </div>
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">ステータス</label>
+          <div style="display:flex; gap:8px; margin-bottom:16px;">
+            <button class="genba-status-btn" onclick="selectGenbaStatus('予定')" data-status="予定"
+              style="flex:1; padding:12px; border:2px solid #e5e7eb; border-radius:10px; background:white; font-size:15px; font-weight:bold; cursor:pointer;">
+              📋 予定
+            </button>
+            <button class="genba-status-btn active" onclick="selectGenbaStatus('進行中')" data-status="進行中"
+              style="flex:1; padding:12px; border:2px solid #f59e0b; border-radius:10px; background:#fffbeb; font-size:15px; font-weight:bold; cursor:pointer; color:#d97706;">
+              🔨 進行中
+            </button>
+            <button class="genba-status-btn" onclick="selectGenbaStatus('完了')" data-status="完了"
+              style="flex:1; padding:12px; border:2px solid #e5e7eb; border-radius:10px; background:white; font-size:15px; font-weight:bold; cursor:pointer;">
+              ✅ 完了
+            </button>
+          </div>
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">メモ</label>
+          <textarea id="genba-memo" placeholder="特記事項など" rows="3"
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:20px; resize:vertical;"></textarea>
+
+          <button onclick="saveGenbaForm()"
+            style="width:100%; padding:16px; font-size:18px; font-weight:bold; background:linear-gradient(135deg, #f59e0b, #d97706); color:white; border:none; border-radius:12px; cursor:pointer;">
+            保存する
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>

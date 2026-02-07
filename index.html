@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>リフォーム見積・会計アプリ</title>
+  <title>現場Pro 設備くん</title>
   
   <!-- PWA設定 -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#3b82f6">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="リフォーム見積">
+  <meta name="apple-mobile-web-app-title" content="設備くん">
   
   <!-- プルトゥリフレッシュ無効化 -->
   <style>
@@ -95,12 +95,12 @@
 
   <!-- ★ アプリスプラッシュ（3段階目）★ -->
   <div id="splash-screen">
-    <div class="splash-icon">🔧</div>
-    <div class="splash-title">リフォーム見積・会計</div>
+    <div class="splash-icon">🏗️</div>
+    <div class="splash-title">現場Pro 設備くん</div>
     <div class="splash-subtitle">COCOMI CORE</div>
     <div class="splash-subtitle" style="font-size: 12px; opacity: 0.8;">Powered by COCOMI OS</div>
     <div style="margin-top: 12px; padding: 6px 20px; background: rgba(255,255,255,0.2); border-radius: 20px; display: inline-block;">
-      <span style="color: white; font-size: 14px; font-weight: bold;">Version 0.95</span>
+      <span style="color: white; font-size: 14px; font-weight: bold;">Version 1.0</span>
     </div>
     <div class="splash-subtitle" style="font-size: 10px; opacity: 0.6; margin-top: 12px;">Since 2025</div>
     <div class="splash-loading"></div>
@@ -202,6 +202,8 @@
   <script src="price-search.js"></script><!-- v0.95追加: 価格比較検索機能 -->
   <script src="data.js"></script>
   <script src="help.js"></script><!-- v0.95追加: ヘルプ画面のタブ切替・アコーディオン -->
+  <script src="genba.js"></script><!-- v1.0追加: 現場管理 -->
+  <script src="koutei.js"></script><!-- v1.0追加: 工程管理 -->
   <script src="auto-save.js"></script>
   
   <!-- 画面ローダー（分割された画面を読み込む） -->

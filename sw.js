@@ -1,11 +1,10 @@
 // ==========================================
-// Service Worker - リフォーム見積・会計 Pro
-// Version: 2.0.0
-// ★ v2.0.0: idb-storage.js追加（IndexedDB画像ストレージ）
-// ★ v2.0.1: スプラッシュ画像・アイコン・privacy-policy追加
+// Service Worker - 現場Pro 設備くん
+// Version: 3.0.0
+// ★ v3.0.0: CULOchanKAIKEIproからフォーク、現場管理機能追加
 // ==========================================
 
-const CACHE_NAME = 'reform-app-v2.0.0';
+const CACHE_NAME = 'genba-pro-v3.0.0';
 const OFFLINE_URL = 'index.html';
 
 // キャッシュするファイル（相対パス）
@@ -40,8 +39,12 @@ const FILES_TO_CACHE = [
   'excel-template.js',
   'screen-loader.js',
   'app.js',
+  'genba.js',
+  'koutei.js',
   // ★ 画面HTMLファイル（ルート直下）
   'home.html',
+  'genba.html',
+  'koutei.html',
   'pricesearch.html',
   'help.html',
   'tax.html',

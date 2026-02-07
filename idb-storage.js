@@ -1,6 +1,6 @@
 // ==========================================
 // IndexedDB ストレージ管理
-// Reform App Pro v0.96
+// 現場Pro 設備くん v1.0
 // ==========================================
 // Phase 1: 画像データ（レシート画像・ロゴ・印鑑）を
 // LocalStorageからIndexedDBに移行するためのモジュール
@@ -19,8 +19,10 @@
 // ==========================================
 
 const IDB_NAME = 'reform_app_idb';
-const IDB_VERSION = 1;
+const IDB_VERSION = 2;
 const STORE_IMAGES = 'images';
+const STORE_GENBA = 'genba';
+const STORE_KOUTEI = 'koutei';
 
 // DB接続（シングルトン）
 let _dbPromise = null;
@@ -36,9 +38,23 @@ function getDB() {
       
       req.onupgradeneeded = function(e) {
         var db = e.target.result;
+        // v1: 画像ストア
         if (!db.objectStoreNames.contains(STORE_IMAGES)) {
           db.createObjectStore(STORE_IMAGES, { keyPath: 'key' });
           console.log('[IDB] imagesストアを作成しました');
+        }
+        // v2: 現場ストア
+        if (!db.objectStoreNames.contains(STORE_GENBA)) {
+          var genbaStore = db.createObjectStore(STORE_GENBA, { keyPath: 'id' });
+          genbaStore.createIndex('status', 'status', { unique: false });
+          genbaStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+          console.log('[IDB] genbaストアを作成しました');
+        }
+        // v2: 工程ストア
+        if (!db.objectStoreNames.contains(STORE_KOUTEI)) {
+          var kouteiStore = db.createObjectStore(STORE_KOUTEI, { keyPath: 'id' });
+          kouteiStore.createIndex('genbaId', 'genbaId', { unique: false });
+          console.log('[IDB] kouteiストアを作成しました');
         }
       };
       
@@ -347,6 +363,162 @@ async function migrateImagesToIDB() {
 
 
 // ==========================================
+// 現場（genba）CRUD
+// ==========================================
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
+async function saveGenba(genba) {
+  if (!genba.id) genba.id = generateId();
+  var now = new Date().toISOString();
+  if (!genba.createdAt) genba.createdAt = now;
+  genba.updatedAt = now;
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_GENBA, 'readwrite');
+      tx.objectStore(STORE_GENBA).put(genba);
+      tx.oncomplete = function() { resolve(genba); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] saveGenba失敗:', e);
+    return null;
+  }
+}
+
+async function getGenba(id) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_GENBA, 'readonly');
+      var req = tx.objectStore(STORE_GENBA).get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getGenba失敗:', e);
+    return null;
+  }
+}
+
+async function getAllGenba() {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_GENBA, 'readonly');
+      var req = tx.objectStore(STORE_GENBA).getAll();
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (b.updatedAt || '').localeCompare(a.updatedAt || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getAllGenba失敗:', e);
+    return [];
+  }
+}
+
+async function deleteGenba(id) {
+  try {
+    var db = await getDB();
+    // 現場に紐づく工程も削除
+    var kouteiList = await getKouteiByGenba(id);
+    for (var i = 0; i < kouteiList.length; i++) {
+      await deleteKoutei(kouteiList[i].id);
+    }
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_GENBA, 'readwrite');
+      tx.objectStore(STORE_GENBA).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] deleteGenba失敗:', e);
+  }
+}
+
+// ==========================================
+// 工程（koutei）CRUD
+// ==========================================
+
+async function saveKoutei(koutei) {
+  if (!koutei.id) koutei.id = generateId();
+  var now = new Date().toISOString();
+  if (!koutei.createdAt) koutei.createdAt = now;
+  koutei.updatedAt = now;
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_KOUTEI, 'readwrite');
+      tx.objectStore(STORE_KOUTEI).put(koutei);
+      tx.oncomplete = function() { resolve(koutei); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] saveKoutei失敗:', e);
+    return null;
+  }
+}
+
+async function getKoutei(id) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_KOUTEI, 'readonly');
+      var req = tx.objectStore(STORE_KOUTEI).get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getKoutei失敗:', e);
+    return null;
+  }
+}
+
+async function getKouteiByGenba(genbaId) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_KOUTEI, 'readonly');
+      var idx = tx.objectStore(STORE_KOUTEI).index('genbaId');
+      var req = idx.getAll(genbaId);
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (a.startDate || '').localeCompare(b.startDate || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getKouteiByGenba失敗:', e);
+    return [];
+  }
+}
+
+async function deleteKoutei(id) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_KOUTEI, 'readwrite');
+      tx.objectStore(STORE_KOUTEI).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] deleteKoutei失敗:', e);
+  }
+}
+
+// ==========================================
 // グローバル公開
 // ==========================================
 window.getDB = getDB;
@@ -372,4 +544,15 @@ window.deleteReceiptImageFromIDB = deleteReceiptImageFromIDB;
 window.getIDBStorageEstimate = getIDBStorageEstimate;
 window.migrateImagesToIDB = migrateImagesToIDB;
 
-console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了');
+// 現場・工程
+window.generateId = generateId;
+window.saveGenba = saveGenba;
+window.getGenba = getGenba;
+window.getAllGenba = getAllGenba;
+window.deleteGenba = deleteGenba;
+window.saveKoutei = saveKoutei;
+window.getKoutei = getKoutei;
+window.getKouteiByGenba = getKouteiByGenba;
+window.deleteKoutei = deleteKoutei;
+
+console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（現場・工程対応）');

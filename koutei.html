@@ -1,0 +1,81 @@
+  <!-- ========== 工程表画面 ========== -->
+  <div id="koutei-screen" class="screen">
+    <div class="header" style="background: linear-gradient(135deg, #22c55e, #16a34a);">
+      <button class="back-btn" onclick="showScreen('genba')">←</button>
+      <h1 id="koutei-header-title">工程表</h1>
+      <button class="header-btn" onclick="openKouteiForm()">＋</button>
+    </div>
+
+    <!-- 現場セレクタ -->
+    <div style="padding:12px 16px; background:white; border-bottom:1px solid #e5e7eb;">
+      <select id="koutei-genba-select" onchange="onKouteiGenbaChange()"
+        style="width:100%; padding:12px; font-size:15px; border:2px solid #e5e7eb; border-radius:10px; font-weight:bold;">
+        <option value="">-- 現場を選択 --</option>
+      </select>
+    </div>
+
+    <!-- 工程表表示エリア -->
+    <div id="koutei-chart-area" style="padding:16px; padding-bottom:100px; overflow-x:auto;">
+      <div style="text-align:center; padding:40px; color:#9ca3af;">
+        <div style="font-size:60px; margin-bottom:16px;">📊</div>
+        <div style="font-size:16px;">現場を選択してください</div>
+      </div>
+    </div>
+
+    <!-- 工程登録/編集モーダル -->
+    <div id="koutei-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:200; overflow-y:auto;">
+      <div style="background:white; margin:20px auto; max-width:500px; border-radius:16px; overflow:hidden;">
+        <div style="background:linear-gradient(135deg, #22c55e, #16a34a); color:white; padding:16px; display:flex; justify-content:space-between; align-items:center;">
+          <h2 id="koutei-modal-title" style="font-size:18px; margin:0;">工程を追加</h2>
+          <button onclick="closeKouteiModal()" style="background:rgba(255,255,255,0.2); border:none; color:white; width:36px; height:36px; border-radius:50%; font-size:18px; cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:20px;">
+          <input type="hidden" id="koutei-edit-id">
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">工程名 *</label>
+          <input type="text" id="koutei-name" placeholder="例: 解体工事、配管工事、クロス貼り"
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:16px;">
+
+          <div style="display:flex; gap:12px; margin-bottom:16px;">
+            <div style="flex:1;">
+              <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">開始日</label>
+              <input type="date" id="koutei-start"
+                style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px;">
+            </div>
+            <div style="flex:1;">
+              <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">終了日</label>
+              <input type="date" id="koutei-end"
+                style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px;">
+            </div>
+          </div>
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">進捗（%）</label>
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+            <input type="range" id="koutei-progress" min="0" max="100" value="0"
+              oninput="document.getElementById('koutei-progress-val').textContent=this.value+'%'"
+              style="flex:1; height:8px;">
+            <span id="koutei-progress-val" style="font-size:16px; font-weight:bold; min-width:40px;">0%</span>
+          </div>
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">表示色</label>
+          <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;" id="koutei-color-picker">
+            <button onclick="selectKouteiColor('#3b82f6')" class="koutei-color-btn" data-color="#3b82f6" style="width:40px; height:40px; border-radius:10px; border:3px solid #3b82f6; background:#3b82f6; cursor:pointer;"></button>
+            <button onclick="selectKouteiColor('#22c55e')" class="koutei-color-btn" data-color="#22c55e" style="width:40px; height:40px; border-radius:10px; border:3px solid transparent; background:#22c55e; cursor:pointer;"></button>
+            <button onclick="selectKouteiColor('#f59e0b')" class="koutei-color-btn" data-color="#f59e0b" style="width:40px; height:40px; border-radius:10px; border:3px solid transparent; background:#f59e0b; cursor:pointer;"></button>
+            <button onclick="selectKouteiColor('#ef4444')" class="koutei-color-btn" data-color="#ef4444" style="width:40px; height:40px; border-radius:10px; border:3px solid transparent; background:#ef4444; cursor:pointer;"></button>
+            <button onclick="selectKouteiColor('#a855f7')" class="koutei-color-btn" data-color="#a855f7" style="width:40px; height:40px; border-radius:10px; border:3px solid transparent; background:#a855f7; cursor:pointer;"></button>
+            <button onclick="selectKouteiColor('#06b6d4')" class="koutei-color-btn" data-color="#06b6d4" style="width:40px; height:40px; border-radius:10px; border:3px solid transparent; background:#06b6d4; cursor:pointer;"></button>
+          </div>
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">メモ</label>
+          <textarea id="koutei-memo" placeholder="備考" rows="2"
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:20px; resize:vertical;"></textarea>
+
+          <button onclick="saveKouteiForm()"
+            style="width:100%; padding:16px; font-size:18px; font-weight:bold; background:linear-gradient(135deg, #22c55e, #16a34a); color:white; border:none; border-radius:12px; cursor:pointer;">
+            保存する
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>

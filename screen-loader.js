@@ -14,7 +14,9 @@
 // v0.95追加: receipt-list（レシートリスト画面）
 const SCREEN_FILES = [
   'home',
-  'pricesearch', 
+  'genba',
+  'koutei',
+  'pricesearch',
   'help',
   'tax',
   'settings',
