@@ -149,7 +149,8 @@ function getObjectBounds(obj) {
     case 'window': return { x:obj.x, y:obj.y, w:obj.width||900, h:100 };
     case 'equipment':
       var info = (typeof EQUIP_SIZES!=='undefined') ? EQUIP_SIZES[obj.equipType] : null;
-      return { x:obj.x, y:obj.y, w:info?info.w:500, h:info?info.h:500 };
+      var ew = obj.customW || (info ? info.w : 500), eh = obj.customH || (info ? info.h : 500);
+      return { x:obj.x, y:obj.y, w:ew, h:eh };
     case 'pipe':
       if (!obj.points||obj.points.length===0) return null;
       var mnx=Infinity,mny=Infinity,mxx=-Infinity,mxy=-Infinity;

@@ -270,14 +270,21 @@ function drawPipe(ctx, pipe) {
   ctx.lineTo(a2.x-12*Math.cos(ang+0.4),a2.y-12*Math.sin(ang+0.4));
   ctx.closePath(); ctx.fill();
   var mi=Math.floor(pl.length/2), ms=worldToScreen(pl[mi].x,pl[mi].y);
-  ctx.font='bold 10px sans-serif'; ctx.fillStyle=color; ctx.fillText(PIPE_LABELS[pipe.pipeType]||'',ms.x+4,ms.y-6);
+  var pipeInfo = '';
+  if (pipe.pipeMaterial) pipeInfo += pipe.pipeMaterial;
+  if (pipe.pipeDiameter) pipeInfo += (pipeInfo ? ' ' : '') + pipe.pipeDiameter;
+  if (!pipeInfo) pipeInfo = PIPE_LABELS[pipe.pipeType] || '';
+  else pipeInfo += ' (' + (PIPE_LABELS[pipe.pipeType]||'') + ')';
+  ctx.font='bold 10px sans-serif'; ctx.fillStyle=color;
+  ctx.fillText(pipeInfo, ms.x+4, ms.y-6);
   ctx.restore();
 }
 
 function drawEquipment(ctx, eq) {
   var s=worldToScreen(eq.x,eq.y), sc=window._madoriState.viewport.scale*window._madoriState.pixelsPerMm;
   var info=EQUIP_SIZES[eq.equipType]||{w:500,h:500,label:'?'};
-  var wPx=info.w*sc, hPx=info.h*sc;
+  var eqW=eq.customW||info.w, eqH=eq.customH||info.h;
+  var wPx=eqW*sc, hPx=eqH*sc;
   ctx.save(); ctx.translate(s.x+wPx/2,s.y+hPx/2); ctx.rotate((eq.angle||0)*Math.PI/180);
   ctx.strokeStyle='#6b7280'; ctx.lineWidth=1.5; ctx.fillStyle='#f8fafc';
   ctx.fillRect(-wPx/2,-hPx/2,wPx,hPx); ctx.strokeRect(-wPx/2,-hPx/2,wPx,hPx);

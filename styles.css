@@ -1847,6 +1847,28 @@
   color: white;
   border-color: #0ea5e9;
 }
+.madori-parts-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.madori-parts-tbl th {
+  background: #f1f5f9;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: bold;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+.madori-parts-tbl td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #4b5563;
+}
+.madori-parts-tbl tr:nth-child(even) td {
+  background: #fafbfc;
+}
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
