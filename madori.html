@@ -1,5 +1,5 @@
 <!-- ========== 間取りエディタ画面 (Phase 4) ========== -->
-<div id="madori-screen" class="screen" style="display:flex; flex-direction:column; height:100vh; overflow:hidden;">
+<div id="madori-screen" class="screen">
   <!-- ヘッダー -->
   <div class="header" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); flex-shrink:0;">
     <button class="back-btn" onclick="showScreen('home')">←</button>
@@ -35,7 +35,7 @@
     </button>
   </div>
 
-  <!-- サブツールバー（ツール別オプション） -->
+  <!-- サブツールバー -->
   <div id="madoriSubToolbar" style="display:none; padding:6px 10px; background:#f1f5f9; border-bottom:1px solid #e2e8f0; flex-shrink:0; overflow-x:auto;">
   </div>
 
@@ -56,9 +56,10 @@
       <button onclick="redoMadori()" style="width:44px; height:44px; border-radius:50%; background:white; border:1px solid #d1d5db; font-size:18px; box-shadow:0 2px 8px rgba(0,0,0,0.12); cursor:pointer;">↪</button>
     </div>
 
-    <!-- 選択中オブジェクト削除ボタン（上部中央、選択時のみ表示） -->
-    <div id="madoriSelectionBar" style="display:none; position:absolute; top:8px; left:50%; transform:translateX(-50%); background:white; border-radius:20px; padding:6px 12px; box-shadow:0 2px 8px rgba(0,0,0,0.15); z-index:10; display:none; gap:8px; align-items:center;">
-      <button onclick="rotateMadoriObject()" style="padding:6px 12px; background:#6366f1; color:white; border:none; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer;">🔄 回転</button>
+    <!-- 選択バー（上部中央、選択時のみ表示） -->
+    <div id="madoriSelectionBar" style="display:none; position:absolute; top:8px; left:50%; transform:translateX(-50%); background:white; border-radius:20px; padding:6px 12px; box-shadow:0 2px 8px rgba(0,0,0,0.15); z-index:10; gap:8px; align-items:center;">
+      <button onclick="rotateMadoriObject()" style="padding:6px 12px; background:#6366f1; color:white; border:none; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer;">🔄 90°</button>
+      <button onclick="showMadoriPropertyPanel()" style="padding:6px 12px; background:#0ea5e9; color:white; border:none; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer;">✏️ 編集</button>
       <button onclick="deleteMadoriObject()" style="padding:6px 12px; background:#ef4444; color:white; border:none; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer;">🗑 削除</button>
     </div>
   </div>
@@ -68,120 +69,159 @@
     <button onclick="saveMadoriCurrent()" style="flex:1; padding:12px; background:linear-gradient(135deg,#22c55e,#16a34a); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">💾 保存</button>
     <button onclick="showMadoriMenu()" style="padding:12px 18px; background:linear-gradient(135deg,#6366f1,#4f46e5); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">⋯</button>
   </div>
-</div>
 
-<!-- 間取り一覧モーダル -->
-<div id="madoriListModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
-  <div style="background:white; border-radius:16px; width:92%; max-width:500px; max-height:80vh; overflow:hidden; display:flex; flex-direction:column;">
-    <div style="padding:16px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center;">
-      <h3 style="margin:0; font-size:16px;">📐 間取り一覧</h3>
-      <button onclick="closeMadoriListModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">✕</button>
-    </div>
-    <div style="padding:12px; border-bottom:1px solid #e5e7eb;">
-      <select id="madoriListGenbaFilter" onchange="loadMadoriList()" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">
-        <option value="">すべての現場</option>
-      </select>
-    </div>
-    <div id="madoriListContent" style="flex:1; overflow-y:auto; padding:12px;">
-      <div style="text-align:center; color:#9ca3af; padding:20px;">読み込み中...</div>
-    </div>
-    <div style="padding:12px; border-top:1px solid #e5e7eb;">
-      <button onclick="createNewMadori()" style="width:100%; padding:12px; background:linear-gradient(135deg,#0ea5e9,#0284c7); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">＋ 新規間取り作成</button>
+  <!-- ===== モーダル群（画面内に配置） ===== -->
+
+  <!-- 間取り一覧モーダル -->
+  <div id="madoriListModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:white; border-radius:16px; width:92%; max-width:500px; max-height:80vh; overflow:hidden; display:flex; flex-direction:column;">
+      <div style="padding:16px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0; font-size:16px;">📐 間取り一覧</h3>
+        <button onclick="closeMadoriListModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">✕</button>
+      </div>
+      <div style="padding:12px; border-bottom:1px solid #e5e7eb;">
+        <select id="madoriListGenbaFilter" onchange="loadMadoriList()" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">
+          <option value="">すべての現場</option>
+        </select>
+      </div>
+      <div id="madoriListContent" style="flex:1; overflow-y:auto; padding:12px;">
+        <div style="text-align:center; color:#9ca3af; padding:20px;">読み込み中...</div>
+      </div>
+      <div style="padding:12px; border-top:1px solid #e5e7eb;">
+        <button onclick="createNewMadori()" style="width:100%; padding:12px; background:linear-gradient(135deg,#0ea5e9,#0284c7); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">＋ 新規間取り作成</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- 新規作成モーダル -->
-<div id="madoriNewModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1001; justify-content:center; align-items:center;">
-  <div style="background:white; border-radius:16px; width:88%; max-width:400px; padding:24px;">
-    <h3 style="margin:0 0 16px; font-size:16px;">📐 新規間取り</h3>
-    <div style="margin-bottom:12px;">
-      <label style="font-size:13px; font-weight:bold; color:#374151;">図面名</label>
-      <input type="text" id="madoriNewName" placeholder="例: 1F 間取り" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
-    </div>
-    <div style="margin-bottom:12px;">
-      <label style="font-size:13px; font-weight:bold; color:#374151;">階数</label>
-      <select id="madoriNewFloor" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
-        <option value="1F">1F</option>
-        <option value="2F">2F</option>
-        <option value="3F">3F</option>
-        <option value="B1">B1</option>
-        <option value="外構">外構</option>
-      </select>
-    </div>
-    <div style="margin-bottom:16px;">
-      <label style="font-size:13px; font-weight:bold; color:#374151;">現場</label>
-      <select id="madoriNewGenba" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
-        <option value="">未選択</option>
-      </select>
-    </div>
-    <div style="display:flex; gap:8px;">
-      <button onclick="closeMadoriNewModal()" style="flex:1; padding:12px; background:#e5e7eb; color:#374151; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">キャンセル</button>
-      <button onclick="confirmNewMadori()" style="flex:1; padding:12px; background:linear-gradient(135deg,#22c55e,#16a34a); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">作成</button>
+  <!-- 新規作成モーダル -->
+  <div id="madoriNewModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1001; justify-content:center; align-items:center;">
+    <div style="background:white; border-radius:16px; width:88%; max-width:400px; padding:24px;">
+      <h3 style="margin:0 0 16px; font-size:16px;">📐 新規間取り</h3>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px; font-weight:bold; color:#374151;">図面名</label>
+        <input type="text" id="madoriNewName" placeholder="例: 1F 間取り" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px; font-weight:bold; color:#374151;">階数</label>
+        <select id="madoriNewFloor" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
+          <option value="1F">1F</option><option value="2F">2F</option><option value="3F">3F</option><option value="B1">B1</option><option value="外構">外構</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:13px; font-weight:bold; color:#374151;">現場</label>
+        <select id="madoriNewGenba" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
+          <option value="">未選択</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button onclick="closeMadoriNewModal()" style="flex:1; padding:12px; background:#e5e7eb; color:#374151; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">キャンセル</button>
+        <button onclick="confirmNewMadori()" style="flex:1; padding:12px; background:linear-gradient(135deg,#22c55e,#16a34a); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">作成</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- 部屋ラベル入力モーダル -->
-<div id="madoriRoomLabelModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1001; justify-content:center; align-items:center;">
-  <div style="background:white; border-radius:16px; width:88%; max-width:380px; padding:24px;">
-    <h3 style="margin:0 0 16px; font-size:16px;">🏠 部屋名</h3>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
-      <button class="madori-room-preset" onclick="setRoomLabel('リビング')">リビング</button>
-      <button class="madori-room-preset" onclick="setRoomLabel('キッチン')">キッチン</button>
-      <button class="madori-room-preset" onclick="setRoomLabel('浴室')">浴室</button>
-      <button class="madori-room-preset" onclick="setRoomLabel('洗面所')">洗面所</button>
-      <button class="madori-room-preset" onclick="setRoomLabel('トイレ')">トイレ</button>
-      <button class="madori-room-preset" onclick="setRoomLabel('寝室')">寝室</button>
-      <button class="madori-room-preset" onclick="setRoomLabel('和室')">和室</button>
-      <button class="madori-room-preset" onclick="setRoomLabel('廊下')">廊下</button>
-      <button class="madori-room-preset" onclick="setRoomLabel('玄関')">玄関</button>
-      <button class="madori-room-preset" onclick="setRoomLabel('収納')">収納</button>
-    </div>
-    <input type="text" id="madoriRoomLabelInput" placeholder="自由入力" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-bottom:12px;">
-    <div style="display:flex; gap:8px;">
-      <button onclick="cancelRoomLabel()" style="flex:1; padding:12px; background:#e5e7eb; color:#374151; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">キャンセル</button>
-      <button onclick="confirmRoomLabel()" style="flex:1; padding:12px; background:linear-gradient(135deg,#22c55e,#16a34a); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">決定</button>
-    </div>
-  </div>
-</div>
-
-<!-- 設備ピッカーモーダル -->
-<div id="madoriEquipPicker" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1001; justify-content:center; align-items:center;">
-  <div style="background:white; border-radius:16px; width:92%; max-width:420px; padding:24px;">
-    <h3 style="margin:0 0 16px; font-size:16px;">🔧 設備を選択</h3>
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:16px;">
-      <button class="madori-equip-btn" onclick="selectEquipType('toilet')"><span style="font-size:28px;">🚽</span><span>トイレ</span></button>
-      <button class="madori-equip-btn" onclick="selectEquipType('sink')"><span style="font-size:28px;">🚰</span><span>流し台</span></button>
-      <button class="madori-equip-btn" onclick="selectEquipType('bathtub')"><span style="font-size:28px;">🛁</span><span>浴槽</span></button>
-      <button class="madori-equip-btn" onclick="selectEquipType('kitchen')"><span style="font-size:28px;">🍳</span><span>キッチン</span></button>
-      <button class="madori-equip-btn" onclick="selectEquipType('washbasin')"><span style="font-size:28px;">🧴</span><span>洗面台</span></button>
-      <button class="madori-equip-btn" onclick="selectEquipType('washer')"><span style="font-size:28px;">🧺</span><span>洗濯機</span></button>
-      <button class="madori-equip-btn" onclick="selectEquipType('waterheater')"><span style="font-size:28px;">🔥</span><span>給湯器</span></button>
-      <button class="madori-equip-btn" onclick="selectEquipType('gasrange')"><span style="font-size:28px;">♨️</span><span>ガスコンロ</span></button>
-      <button class="madori-equip-btn" onclick="selectEquipType('ac')"><span style="font-size:28px;">❄️</span><span>エアコン</span></button>
-    </div>
-    <button onclick="closeEquipPicker()" style="width:100%; padding:12px; background:#e5e7eb; color:#374151; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">閉じる</button>
-  </div>
-</div>
-
-<!-- メニューモーダル -->
-<div id="madoriMenuModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:flex-end;">
-  <div style="background:white; border-radius:16px 16px 0 0; width:100%; max-width:500px; padding:20px 16px 30px;">
-    <div style="width:40px; height:4px; background:#d1d5db; border-radius:2px; margin:0 auto 16px;"></div>
-    <div style="display:flex; flex-direction:column; gap:8px;">
-      <button onclick="connectBluetoothMeter()" style="width:100%; padding:14px; background:linear-gradient(135deg,#3b82f6,#2563eb); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">📡 Bluetooth距離計に接続</button>
-      <button onclick="suggestPartsWithAI()" style="width:100%; padding:14px; background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">🤖 AIパーツ提案</button>
-      <button onclick="exportMadoriPDF()" style="width:100%; padding:14px; background:linear-gradient(135deg,#f59e0b,#d97706); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">📄 PDF出力</button>
-      <button onclick="closeMadoriMenu()" style="width:100%; padding:14px; background:#e5e7eb; color:#374151; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">閉じる</button>
+  <!-- 部屋ラベル入力モーダル -->
+  <div id="madoriRoomLabelModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1001; justify-content:center; align-items:center;">
+    <div style="background:white; border-radius:16px; width:88%; max-width:380px; padding:24px;">
+      <h3 style="margin:0 0 16px; font-size:16px;">🏠 部屋名</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+        <button class="madori-room-preset" onclick="setRoomLabel('リビング')">リビング</button>
+        <button class="madori-room-preset" onclick="setRoomLabel('キッチン')">キッチン</button>
+        <button class="madori-room-preset" onclick="setRoomLabel('浴室')">浴室</button>
+        <button class="madori-room-preset" onclick="setRoomLabel('洗面所')">洗面所</button>
+        <button class="madori-room-preset" onclick="setRoomLabel('トイレ')">トイレ</button>
+        <button class="madori-room-preset" onclick="setRoomLabel('寝室')">寝室</button>
+        <button class="madori-room-preset" onclick="setRoomLabel('和室')">和室</button>
+        <button class="madori-room-preset" onclick="setRoomLabel('廊下')">廊下</button>
+        <button class="madori-room-preset" onclick="setRoomLabel('玄関')">玄関</button>
+        <button class="madori-room-preset" onclick="setRoomLabel('収納')">収納</button>
+      </div>
+      <input type="text" id="madoriRoomLabelInput" placeholder="自由入力" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-bottom:12px;">
+      <div style="display:flex; gap:8px;">
+        <button onclick="cancelRoomLabel()" style="flex:1; padding:12px; background:#e5e7eb; color:#374151; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">キャンセル</button>
+        <button onclick="confirmRoomLabel()" style="flex:1; padding:12px; background:linear-gradient(135deg,#22c55e,#16a34a); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">決定</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- AI分析ローディング -->
-<div id="madoriAiLoading" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1002; justify-content:center; align-items:center;">
-  <div style="background:white; border-radius:16px; padding:30px; text-align:center;">
-    <div class="loading-spinner" style="width:40px; height:40px; border:4px solid #e5e7eb; border-top-color:#3b82f6; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 16px;"></div>
-    <div style="font-size:15px; font-weight:bold; color:#374151;">AI分析中...</div>
+  <!-- 設備ピッカーモーダル -->
+  <div id="madoriEquipPicker" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1001; justify-content:center; align-items:center;">
+    <div style="background:white; border-radius:16px; width:92%; max-width:420px; padding:24px;">
+      <h3 style="margin:0 0 16px; font-size:16px;">🔧 設備を選択</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:16px;">
+        <button class="madori-equip-btn" onclick="selectEquipType('toilet')"><span style="font-size:28px;">🚽</span><span>トイレ</span></button>
+        <button class="madori-equip-btn" onclick="selectEquipType('sink')"><span style="font-size:28px;">🚰</span><span>流し台</span></button>
+        <button class="madori-equip-btn" onclick="selectEquipType('bathtub')"><span style="font-size:28px;">🛁</span><span>浴槽</span></button>
+        <button class="madori-equip-btn" onclick="selectEquipType('kitchen')"><span style="font-size:28px;">🍳</span><span>キッチン</span></button>
+        <button class="madori-equip-btn" onclick="selectEquipType('washbasin')"><span style="font-size:28px;">🧴</span><span>洗面台</span></button>
+        <button class="madori-equip-btn" onclick="selectEquipType('washer')"><span style="font-size:28px;">🧺</span><span>洗濯機</span></button>
+        <button class="madori-equip-btn" onclick="selectEquipType('waterheater')"><span style="font-size:28px;">🔥</span><span>給湯器</span></button>
+        <button class="madori-equip-btn" onclick="selectEquipType('gasrange')"><span style="font-size:28px;">♨️</span><span>ガスコンロ</span></button>
+        <button class="madori-equip-btn" onclick="selectEquipType('ac')"><span style="font-size:28px;">❄️</span><span>エアコン</span></button>
+      </div>
+      <button onclick="closeEquipPicker()" style="width:100%; padding:12px; background:#e5e7eb; color:#374151; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">閉じる</button>
+    </div>
+  </div>
+
+  <!-- ドアタイプ選択モーダル -->
+  <div id="madoriDoorTypePicker" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1001; justify-content:center; align-items:center;">
+    <div style="background:white; border-radius:16px; width:88%; max-width:400px; padding:24px;">
+      <h3 style="margin:0 0 16px; font-size:16px;">🚪 ドアタイプ</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+        <button class="madori-door-type-btn" onclick="selectDoorTypeAndPlace('hinged-left')"><span style="font-size:28px;">↰</span><span>左開き</span></button>
+        <button class="madori-door-type-btn" onclick="selectDoorTypeAndPlace('hinged-right')"><span style="font-size:28px;">↱</span><span>右開き</span></button>
+        <button class="madori-door-type-btn" onclick="selectDoorTypeAndPlace('sliding-single')"><span style="font-size:28px;">⇢</span><span>片引き戸</span></button>
+        <button class="madori-door-type-btn" onclick="selectDoorTypeAndPlace('sliding-double')"><span style="font-size:28px;">⇔</span><span>両引き戸</span></button>
+      </div>
+      <button onclick="closeDoorTypePicker()" style="width:100%; padding:12px; background:#e5e7eb; color:#374151; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- プロパティ編集パネル -->
+  <div id="madoriPropertyPanel" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1001; justify-content:center; align-items:center;">
+    <div style="background:white; border-radius:16px; width:88%; max-width:400px; padding:24px;">
+      <h3 style="margin:0 0 16px; font-size:16px;">✏️ プロパティ編集</h3>
+      <div id="madoriPropContent"></div>
+      <div style="display:flex; gap:8px; margin-top:16px;">
+        <button onclick="closeMadoriPropertyPanel()" style="flex:1; padding:12px; background:#e5e7eb; color:#374151; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">キャンセル</button>
+        <button onclick="applyMadoriProperty()" style="flex:1; padding:12px; background:linear-gradient(135deg,#22c55e,#16a34a); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">適用</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 寸法値入力モーダル -->
+  <div id="madoriDimInputModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1001; justify-content:center; align-items:center;">
+    <div style="background:white; border-radius:16px; width:80%; max-width:320px; padding:24px;">
+      <h3 style="margin:0 0 12px; font-size:16px;">📏 寸法値を入力</h3>
+      <div class="madori-prop-group">
+        <label>寸法 (mm)</label>
+        <input type="number" id="dimValueInput" min="0" step="1" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:16px;">
+      </div>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button onclick="closeDimValueInput()" style="flex:1; padding:12px; background:#e5e7eb; color:#374151; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">キャンセル</button>
+        <button onclick="applyDimValue()" style="flex:1; padding:12px; background:linear-gradient(135deg,#22c55e,#16a34a); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">決定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- メニューモーダル -->
+  <div id="madoriMenuModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:flex-end;">
+    <div style="background:white; border-radius:16px 16px 0 0; width:100%; max-width:500px; padding:20px 16px 30px;">
+      <div style="width:40px; height:4px; background:#d1d5db; border-radius:2px; margin:0 auto 16px;"></div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button onclick="connectBluetoothMeter()" style="width:100%; padding:14px; background:linear-gradient(135deg,#3b82f6,#2563eb); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">📡 Bluetooth距離計に接続</button>
+        <button onclick="suggestPartsWithAI()" style="width:100%; padding:14px; background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">🤖 AIパーツ提案</button>
+        <button onclick="exportMadoriPDF()" style="width:100%; padding:14px; background:linear-gradient(135deg,#f59e0b,#d97706); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">📄 PDF出力</button>
+        <button onclick="closeMadoriMenu()" style="width:100%; padding:14px; background:#e5e7eb; color:#374151; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI分析ローディング -->
+  <div id="madoriAiLoading" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1002; justify-content:center; align-items:center;">
+    <div style="background:white; border-radius:16px; padding:30px; text-align:center;">
+      <div class="loading-spinner" style="width:40px; height:40px; border:4px solid #e5e7eb; border-top-color:#3b82f6; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 16px;"></div>
+      <div style="font-size:15px; font-weight:bold; color:#374151;">AI分析中...</div>
+    </div>
   </div>
 </div>

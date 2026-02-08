@@ -20,7 +20,9 @@ window._madoriState = {
   undoStack: [], redoStack: [],
   btDevice: null, btCharacteristic: null,
   _pendingRoomObj: null, _selectedEquipType: null,
-  _pipeType: 'water', _dimStart: null
+  _pipeType: 'water', _dimStart: null,
+  isResizing: false, resizeHandle: null,
+  resizeStartWX: 0, resizeStartWY: 0, resizeObjStart: null
 };
 var _madoriCanvas = null, _madoriCtx = null;
 
@@ -81,23 +83,27 @@ function drawGrid(ctx) {
   var st = window._madoriState, vp = st.viewport, ppmm = st.pixelsPerMm;
   var w = _madoriCanvas.width / (window.devicePixelRatio || 1);
   var h = _madoriCanvas.height / (window.devicePixelRatio || 1);
-  var cellMm = st.gridSize, cellPx = cellMm * vp.scale * ppmm;
-  if (cellPx < 4) return;
+  // Adaptive grid: increase step when zoomed out
+  var step = st.gridSize;
+  while (step * vp.scale * ppmm < 4) { step *= 10; }
+  var stepPx = step * vp.scale * ppmm;
+  if (stepPx < 2) return;
+  var majorStep = (step < 1000) ? 1000 : step * 10;
   var tl = screenToWorld(0, 0), br = screenToWorld(w, h);
-  var startX = Math.floor(tl.x / cellMm) * cellMm, endX = Math.ceil(br.x / cellMm) * cellMm;
-  var startY = Math.floor(tl.y / cellMm) * cellMm, endY = Math.ceil(br.y / cellMm) * cellMm;
+  var startX = Math.floor(tl.x / step) * step, endX = Math.ceil(br.x / step) * step;
+  var startY = Math.floor(tl.y / step) * step, endY = Math.ceil(br.y / step) * step;
   ctx.save();
-  for (var x = startX; x <= endX; x += cellMm) {
-    var sx = worldToScreen(x, 0).x, isM = (x % 1000 === 0);
+  for (var x = startX; x <= endX; x += step) {
+    var sx = worldToScreen(x, 0).x, isM = (x % majorStep === 0);
     ctx.strokeStyle = isM ? '#cbd5e1' : '#e2e8f0'; ctx.lineWidth = isM ? 1 : 0.5;
     ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, h); ctx.stroke();
-    if (isM && cellPx > 8) { ctx.fillStyle='#94a3b8'; ctx.font='10px sans-serif'; ctx.fillText((x/1000)+'m', sx+2, 12); }
+    if (isM && stepPx > 3) { ctx.fillStyle='#94a3b8'; ctx.font='10px sans-serif'; ctx.fillText((x/1000)+'m', sx+2, 12); }
   }
-  for (var y = startY; y <= endY; y += cellMm) {
-    var sy = worldToScreen(0, y).y, isM = (y % 1000 === 0);
+  for (var y = startY; y <= endY; y += step) {
+    var sy = worldToScreen(0, y).y, isM = (y % majorStep === 0);
     ctx.strokeStyle = isM ? '#cbd5e1' : '#e2e8f0'; ctx.lineWidth = isM ? 1 : 0.5;
     ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(w, sy); ctx.stroke();
-    if (isM && cellPx > 8) { ctx.fillStyle='#94a3b8'; ctx.font='10px sans-serif'; ctx.fillText((y/1000)+'m', 2, sy-2); }
+    if (isM && stepPx > 3) { ctx.fillStyle='#94a3b8'; ctx.font='10px sans-serif'; ctx.fillText((y/1000)+'m', 2, sy-2); }
   }
   ctx.restore();
 }
@@ -197,7 +203,7 @@ function zoomMadori(factor) {
   var w = _madoriCanvas.width/(window.devicePixelRatio||1), h = _madoriCanvas.height/(window.devicePixelRatio||1);
   var cx=w/2, cy=h/2;
   vp.offsetX = cx-(cx-vp.offsetX)*factor; vp.offsetY = cy-(cy-vp.offsetY)*factor;
-  vp.scale = Math.max(0.1, Math.min(10, vp.scale*factor)); renderMadoriCanvas();
+  vp.scale = Math.max(0.01, Math.min(10, vp.scale*factor)); renderMadoriCanvas();
 }
 function resetMadoriView() { var vp=window._madoriState.viewport; vp.offsetX=50; vp.offsetY=50; vp.scale=1.0; renderMadoriCanvas(); }
 
@@ -210,7 +216,7 @@ function onMadoriWheel(e) {
   e.preventDefault(); var f = e.deltaY<0?1.1:0.9, vp=window._madoriState.viewport;
   var r=_madoriCanvas.getBoundingClientRect(), cx=e.clientX-r.left, cy=e.clientY-r.top;
   vp.offsetX=cx-(cx-vp.offsetX)*f; vp.offsetY=cy-(cy-vp.offsetY)*f;
-  vp.scale=Math.max(0.1,Math.min(10,vp.scale*f)); renderMadoriCanvas();
+  vp.scale=Math.max(0.01,Math.min(10,vp.scale*f)); renderMadoriCanvas();
 }
 
 // タッチイベント
@@ -227,7 +233,7 @@ function onMadoriTouchStart(e) {
 function onMadoriTouchMove(e) {
   e.preventDefault(); var st=window._madoriState;
   if (e.touches.length===2 && st.isPanning) {
-    var dist=getTouchDist(e.touches), ns=Math.max(0.1,Math.min(10,st.pinchStartScale*(dist/st.pinchStartDist)));
+    var dist=getTouchDist(e.touches), ns=Math.max(0.01,Math.min(10,st.pinchStartScale*(dist/st.pinchStartDist)));
     var mx=(e.touches[0].clientX+e.touches[1].clientX)/2, my=(e.touches[0].clientY+e.touches[1].clientY)/2;
     st.viewport.offsetX=st.panStartOffsetX+(mx-st.panStartX); st.viewport.offsetY=st.panStartOffsetY+(my-st.panStartY);
     var sf=ns/st.viewport.scale, r=_madoriCanvas.getBoundingClientRect(), cx=mx-r.left, cy=my-r.top;

@@ -2,7 +2,7 @@
 // 間取りエディタ — 描画ツール・設備アイコン (現場Pro 設備くん Phase4)
 // 部屋・壁・ドア・窓・配管・設備・寸法の描画ロジック、
 // 設備アイコン描画、オブジェクトの追加/削除/更新、プロパティ編集
-// 依存: madori-core.js → 後続: madori-data.js
+// 依存: madori-core.js → 後続: madori-ui.js, madori-data.js
 // ==========================================
 
 var EQUIP_SIZES = {
@@ -33,6 +33,20 @@ function removeMadoriObject(id) {
 function onMadoriToolDown(mode, wx, wy, rawX, rawY, sx, sy) {
   var st = window._madoriState;
   if (mode==='select') {
+    // Check resize handles first
+    if (st.selectedId && typeof hitTestResizeHandle==='function') {
+      var rh = hitTestResizeHandle(rawX, rawY);
+      if (rh) {
+        var obj = getObjectById(st.selectedId);
+        if (obj && obj.type==='room') {
+          st.isResizing=true; st.resizeHandle=rh.handle;
+          st.resizeStartWX=wx; st.resizeStartWY=wy;
+          st.resizeObjStart={x:obj.x,y:obj.y,w:obj.width,h:obj.height};
+          if (typeof pushUndo==='function') pushUndo();
+          return;
+        }
+      }
+    }
     var hit = hitTest(rawX, rawY);
     if (hit) {
       st.selectedId=hit.id; st.isDragging=true;
@@ -50,7 +64,11 @@ function onMadoriToolDown(mode, wx, wy, rawX, rawY, sx, sy) {
     else { addMadoriObject({type:'wall',x:st.drawingStart.x,y:st.drawingStart.y,x2:wx,y2:wy,thickness:120,wallType:'exterior'}); st.drawingStart=null; }
     renderMadoriCanvas(); return;
   }
-  if (mode==='door') { addMadoriObject({type:'door',x:wx,y:wy,width:800,doorStyle:'hinged',angle:0}); return; }
+  if (mode==='door') {
+    if (typeof showDoorTypePicker==='function') { showDoorTypePicker(wx, wy); }
+    else { addMadoriObject({type:'door',x:wx,y:wy,width:800,doorStyle:'hinged-right',angle:0}); }
+    return;
+  }
   if (mode==='window') { addMadoriObject({type:'window',x:wx,y:wy,width:900,angle:0}); return; }
   if (mode==='pipe') {
     st.drawingPoints.push({x:wx,y:wy});
@@ -66,8 +84,9 @@ function onMadoriToolDown(mode, wx, wy, rawX, rawY, sx, sy) {
     if (!st._dimStart) { st._dimStart={x:wx,y:wy}; }
     else {
       var val = Math.round(Math.sqrt(Math.pow(wx-st._dimStart.x,2)+Math.pow(wy-st._dimStart.y,2)));
-      addMadoriObject({type:'dimension',x:st._dimStart.x,y:st._dimStart.y,x2:wx,y2:wy,value:val,source:'manual'});
+      var dimObj = addMadoriObject({type:'dimension',x:st._dimStart.x,y:st._dimStart.y,x2:wx,y2:wy,value:val,source:'manual'});
       st._dimStart=null;
+      if (typeof showDimValueInput==='function') showDimValueInput(dimObj);
     }
     renderMadoriCanvas(); return;
   }
@@ -77,6 +96,18 @@ function onMadoriToolDown(mode, wx, wy, rawX, rawY, sx, sy) {
 function onMadoriToolMove(mode, wx, wy, rawX, rawY, sx, sy) {
   var st = window._madoriState;
   if (mode==='select') {
+    if (st.isResizing && st.selectedId) {
+      var obj=getObjectById(st.selectedId);
+      if (obj && obj.type==='room' && st.resizeObjStart) {
+        var dx=wx-st.resizeStartWX, dy=wy-st.resizeStartWY, s=st.resizeObjStart, h=st.resizeHandle;
+        if (h==='br') { obj.width=Math.max(200,s.w+dx); obj.height=Math.max(200,s.h+dy); }
+        else if (h==='bl') { obj.x=s.x+dx; obj.width=Math.max(200,s.w-dx); obj.height=Math.max(200,s.h+dy); }
+        else if (h==='tr') { obj.y=s.y+dy; obj.width=Math.max(200,s.w+dx); obj.height=Math.max(200,s.h-dy); }
+        else if (h==='tl') { obj.x=s.x+dx; obj.y=s.y+dy; obj.width=Math.max(200,s.w-dx); obj.height=Math.max(200,s.h-dy); }
+        renderMadoriCanvas();
+      }
+      return;
+    }
     if (st.isDragging && st.selectedId) {
       var obj=getObjectById(st.selectedId);
       if (obj) { obj.x=st.dragObjStartX+(wx-st.dragStartWX); obj.y=st.dragObjStartY+(wy-st.dragStartWY); renderMadoriCanvas(); }
@@ -91,7 +122,7 @@ function onMadoriToolMove(mode, wx, wy, rawX, rawY, sx, sy) {
 // === ツール別PointerUp ===
 function onMadoriToolUp(mode, wx, wy) {
   var st = window._madoriState;
-  if (mode==='select') { st.isDragging=false; st.isPanning=false; return; }
+  if (mode==='select') { st.isDragging=false; st.isPanning=false; st.isResizing=false; st.resizeHandle=null; return; }
   if (mode==='room' && st.drawingStart) {
     var x1=Math.min(st.drawingStart.x,wx), y1=Math.min(st.drawingStart.y,wy);
     var w=Math.abs(wx-st.drawingStart.x), h=Math.abs(wy-st.drawingStart.y);
@@ -118,7 +149,7 @@ function confirmRoomLabel() {
   var st=window._madoriState, inp=document.getElementById('madoriRoomLabelInput');
   var label = inp ? inp.value.trim() : ''; if (!label) label='部屋';
   var p = st._pendingRoomObj;
-  if (p) addMadoriObject({type:'room',x:p.x,y:p.y,width:p.width,height:p.height,label:label,fillColor:ROOM_COLORS[label]||'#f3f4f6',roomType:'rectangle'});
+  if (p) addMadoriObject({type:'room',x:p.x,y:p.y,width:p.width,height:p.height,label:label,fillColor:ROOM_COLORS[label]||'#f3f4f6',roomType:'rectangle',angle:0});
   st._pendingRoomObj=null; closeRoomLabelModal();
 }
 function cancelRoomLabel() { window._madoriState._pendingRoomObj=null; closeRoomLabelModal(); }
@@ -155,6 +186,10 @@ function drawRoom(ctx, r) {
   var tl=worldToScreen(r.x,r.y), br=worldToScreen(r.x+r.width,r.y+r.height);
   var w=br.x-tl.x, h=br.y-tl.y;
   ctx.save();
+  if (r.angle) {
+    var cx=tl.x+w/2, cy=tl.y+h/2;
+    ctx.translate(cx,cy); ctx.rotate(r.angle*Math.PI/180); ctx.translate(-cx,-cy);
+  }
   ctx.fillStyle=r.fillColor||'#f3f4f6'; ctx.fillRect(tl.x,tl.y,w,h);
   ctx.strokeStyle='#374151'; ctx.lineWidth=2; ctx.strokeRect(tl.x,tl.y,w,h);
   if (r.label) {
@@ -164,7 +199,10 @@ function drawRoom(ctx, r) {
   }
   var ds=Math.max(8,Math.min(12,w/8));
   ctx.font=ds+'px sans-serif'; ctx.fillStyle='#6b7280'; ctx.textAlign='center';
-  ctx.fillText(Math.round(r.width)+'×'+Math.round(r.height)+'mm', tl.x+w/2, tl.y+h/2+ds);
+  var dimText = (r.width>=1000) ? (r.width/1000).toFixed(1)+'m' : Math.round(r.width)+'mm';
+  dimText += ' x ';
+  dimText += (r.height>=1000) ? (r.height/1000).toFixed(1)+'m' : Math.round(r.height)+'mm';
+  ctx.fillText(dimText, tl.x+w/2, tl.y+h/2+ds);
   ctx.restore();
 }
 
@@ -178,11 +216,29 @@ function drawWall(ctx, wall) {
 function drawDoor(ctx, door) {
   var s=worldToScreen(door.x,door.y), sc=window._madoriState.viewport.scale*window._madoriState.pixelsPerMm;
   var wPx=(door.width||800)*sc;
+  var style=door.doorStyle||'hinged-right';
+  // Backward compat
+  if (style==='hinged') style='hinged-right';
+  if (style==='sliding') style='sliding-single';
   ctx.save(); ctx.translate(s.x,s.y); ctx.rotate((door.angle||0)*Math.PI/180);
   ctx.strokeStyle='#3b82f6'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(wPx,0); ctx.stroke();
-  if (door.doorStyle!=='sliding') { ctx.setLineDash([4,4]); ctx.beginPath(); ctx.arc(0,0,wPx,0,-Math.PI/2,true); ctx.stroke(); ctx.setLineDash([]); }
-  else { ctx.beginPath(); ctx.moveTo(wPx*0.3,-8); ctx.lineTo(wPx*0.7,-8); ctx.stroke(); ctx.beginPath(); ctx.moveTo(wPx*0.6,-14); ctx.lineTo(wPx*0.7,-8); ctx.lineTo(wPx*0.6,-2); ctx.stroke(); }
+  if (style==='hinged-left') {
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(wPx,0); ctx.stroke();
+    ctx.setLineDash([4,4]); ctx.beginPath(); ctx.arc(0,0,wPx,0,-Math.PI/2,true); ctx.stroke(); ctx.setLineDash([]);
+  } else if (style==='hinged-right') {
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(wPx,0); ctx.stroke();
+    ctx.setLineDash([4,4]); ctx.beginPath(); ctx.arc(wPx,0,wPx,Math.PI,Math.PI*1.5); ctx.stroke(); ctx.setLineDash([]);
+  } else if (style==='sliding-single') {
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(wPx,0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(wPx*0.3,-8); ctx.lineTo(wPx*0.7,-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(wPx*0.6,-14); ctx.lineTo(wPx*0.7,-8); ctx.lineTo(wPx*0.6,-2); ctx.stroke();
+  } else if (style==='sliding-double') {
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(wPx,0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(wPx*0.45,-8); ctx.lineTo(wPx*0.2,-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(wPx*0.25,-14); ctx.lineTo(wPx*0.2,-8); ctx.lineTo(wPx*0.25,-2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(wPx*0.55,-8); ctx.lineTo(wPx*0.8,-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(wPx*0.75,-14); ctx.lineTo(wPx*0.8,-8); ctx.lineTo(wPx*0.75,-2); ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -206,7 +262,6 @@ function drawPipe(ctx, pipe) {
   var s0=worldToScreen(pipe.points[0].x,pipe.points[0].y); ctx.moveTo(s0.x,s0.y);
   for (var i=1; i<pipe.points.length; i++) { var si=worldToScreen(pipe.points[i].x,pipe.points[i].y); ctx.lineTo(si.x,si.y); }
   ctx.stroke();
-  // 方向矢印
   var pl=pipe.points, p1=pl[pl.length-2], p2=pl[pl.length-1];
   var a1=worldToScreen(p1.x,p1.y), a2=worldToScreen(p2.x,p2.y);
   var ang=Math.atan2(a2.y-a1.y,a2.x-a1.x);
@@ -214,7 +269,6 @@ function drawPipe(ctx, pipe) {
   ctx.lineTo(a2.x-12*Math.cos(ang-0.4),a2.y-12*Math.sin(ang-0.4));
   ctx.lineTo(a2.x-12*Math.cos(ang+0.4),a2.y-12*Math.sin(ang+0.4));
   ctx.closePath(); ctx.fill();
-  // ラベル
   var mi=Math.floor(pl.length/2), ms=worldToScreen(pl[mi].x,pl[mi].y);
   ctx.font='bold 10px sans-serif'; ctx.fillStyle=color; ctx.fillText(PIPE_LABELS[pipe.pipeType]||'',ms.x+4,ms.y-6);
   ctx.restore();
