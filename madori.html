@@ -5,7 +5,7 @@
     <button class="back-btn" onclick="showScreen('home')">←</button>
     <h1 style="font-size:16px;">📐 間取りエディタ</h1>
     <div id="madoriBtBadge" style="display:none; align-items:center; gap:2px; background:#22c55e; color:white; font-size:10px; padding:2px 6px; border-radius:10px; font-weight:bold;">📡 BT</div>
-    <button class="header-btn" onclick="showMadoriList()" style="font-size:18px;">📋</button>
+    <button class="header-btn" onclick="showMadoriMenu()" style="font-size:20px;">☰</button>
   </div>
 
   <!-- ツールバー -->
@@ -210,11 +210,13 @@
     <div style="background:white; border-radius:16px 16px 0 0; width:100%; max-width:500px; padding:20px 16px 30px;">
       <div style="width:40px; height:4px; background:#d1d5db; border-radius:2px; margin:0 auto 16px;"></div>
       <div style="display:flex; flex-direction:column; gap:8px;">
-        <button onclick="showPartsList()" style="width:100%; padding:14px; background:linear-gradient(135deg,#10b981,#059669); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">📋 部材リスト</button>
+        <button onclick="saveMadoriCurrent(); closeMadoriMenu();" style="width:100%; padding:14px; background:linear-gradient(135deg,#22c55e,#16a34a); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">💾 保存</button>
+        <button onclick="closeMadoriMenu(); showMadoriList();" style="width:100%; padding:14px; background:linear-gradient(135deg,#0ea5e9,#0284c7); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">📂 読込</button>
         <button onclick="connectBluetoothMeter()" style="width:100%; padding:14px; background:linear-gradient(135deg,#3b82f6,#2563eb); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">📡 Bluetooth距離計に接続</button>
-        <button onclick="disconnectBluetoothMeter(); closeMadoriMenu();" style="width:100%; padding:14px; background:linear-gradient(135deg,#6b7280,#4b5563); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">📡 Bluetooth切断</button>
         <button onclick="suggestPartsWithAI()" style="width:100%; padding:14px; background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">🤖 AIパーツ提案</button>
         <button onclick="exportMadoriPDF()" style="width:100%; padding:14px; background:linear-gradient(135deg,#f59e0b,#d97706); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">📄 PDF出力</button>
+        <button onclick="showPartsList()" style="width:100%; padding:14px; background:linear-gradient(135deg,#10b981,#059669); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">📋 部材リスト</button>
+        <button onclick="disconnectBluetoothMeter(); closeMadoriMenu();" style="width:100%; padding:14px; background:linear-gradient(135deg,#6b7280,#4b5563); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; text-align:left;">📡 Bluetooth切断</button>
         <button onclick="closeMadoriMenu()" style="width:100%; padding:14px; background:#e5e7eb; color:#374151; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">閉じる</button>
       </div>
     </div>
