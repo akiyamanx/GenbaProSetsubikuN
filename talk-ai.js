@@ -136,12 +136,8 @@ async function callTalkGeminiAPI(prompt) {
   if (!response.ok) {
     var errText = '';
     try { errText = await response.text(); } catch(e) {}
-    if (response.status === 400) {
-      throw new Error('APIリクエストエラー。APIキーを確認してください。');
-    } else if (response.status === 429) {
-      throw new Error('API使用制限に達しました。しばらく待ってから再度お試しください。');
-    }
-    throw new Error('API Error: ' + response.status + ' ' + errText.substring(0, 100));
+    // v0.51デバッグ用: ステータスコードとレスポンスボディをそのまま返す
+    throw new Error('API Error [' + response.status + ']\n' + errText);
   }
 
   // API使用量を記録

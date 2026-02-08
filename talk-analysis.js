@@ -252,8 +252,8 @@ async function startTalkAnalysis() {
 
     // パースエラーチェック
     if (result.parseError) {
-      showTalkError('AIの応答を解析できませんでした。もう一度お試しください。');
-      console.log('[talk-analysis] 生テキスト:', result.rawText);
+      // v0.51デバッグ用: AIが返した生テキストをそのまま表示
+      showTalkError('JSONパースエラー: AIの応答を解析できませんでした。\n\n【AIの生レスポンス】\n' + (result.rawText || '(空)'));
       return;
     }
 
@@ -266,6 +266,7 @@ async function startTalkAnalysis() {
 
   } catch (e) {
     console.error('[talk-analysis] 解析エラー:', e);
+    // v0.51デバッグ用: エラー詳細をそのまま表示
     showTalkError(e.message || '解析に失敗しました。ネットワーク接続を確認してください。');
   } finally {
     if (btn) btn.disabled = false;
@@ -277,11 +278,14 @@ async function startTalkAnalysis() {
 // エラー表示
 // ==========================================
 
+// v0.51デバッグ用: エラー詳細を改行付きで表示
 function showTalkError(msg) {
   var error = document.getElementById('talk-error');
   if (error) {
-    error.textContent = msg;
     error.style.display = 'block';
+    error.style.whiteSpace = 'pre-wrap';
+    error.style.wordBreak = 'break-all';
+    error.textContent = msg;
   }
 }
 
