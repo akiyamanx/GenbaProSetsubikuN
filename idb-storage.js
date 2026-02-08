@@ -19,12 +19,14 @@
 // ==========================================
 
 const IDB_NAME = 'reform_app_idb';
-const IDB_VERSION = 3;
+const IDB_VERSION = 4;
 const STORE_IMAGES = 'images';
 const STORE_GENBA = 'genba';
 const STORE_KOUTEI = 'koutei';
 const STORE_SHOKUNIN = 'shokunin';
 const STORE_SCHEDULE = 'schedule';
+const STORE_PHOTO = 'photo';
+const STORE_NIPPO = 'nippo';
 
 // DB接続（シングルトン）
 let _dbPromise = null;
@@ -66,6 +68,19 @@ function getDB() {
         sc.createIndex('date', 'date', { unique: false });
         sc.createIndex('genbaId', 'genbaId', { unique: false });
         sc.createIndex('shokuninId', 'shokuninId', { unique: false });
+      }
+      // v4: 写真ストア
+      if (!db.objectStoreNames.contains(STORE_PHOTO)) {
+        var ps = db.createObjectStore(STORE_PHOTO, { keyPath: 'id' });
+        ps.createIndex('genbaId', 'genbaId', { unique: false });
+        ps.createIndex('kouteiId', 'kouteiId', { unique: false });
+        ps.createIndex('date', 'date', { unique: false });
+      }
+      // v4: 日報ストア
+      if (!db.objectStoreNames.contains(STORE_NIPPO)) {
+        var ns = db.createObjectStore(STORE_NIPPO, { keyPath: 'id' });
+        ns.createIndex('genbaId', 'genbaId', { unique: false });
+        ns.createIndex('date', 'date', { unique: false });
       }
     };
 
@@ -795,6 +810,266 @@ async function deleteSchedule(id, _retry) {
 }
 
 // ==========================================
+// 写真（photo）CRUD
+// ==========================================
+
+async function savePhoto(photo, _retry) {
+  if (!photo.id) photo.id = generateId();
+  var now = new Date().toISOString();
+  if (!photo.createdAt) photo.createdAt = now;
+  photo.updatedAt = now;
+  if (!photo.date) photo.date = now.split('T')[0];
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_PHOTO, 'readwrite');
+      tx.objectStore(STORE_PHOTO).put(photo);
+      tx.oncomplete = function() { resolve(photo); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] savePhoto失敗:', e);
+    if (!_retry) { _dbPromise = null; return savePhoto(photo, true); }
+    return null;
+  }
+}
+
+async function getPhoto(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_PHOTO, 'readonly');
+      var req = tx.objectStore(STORE_PHOTO).get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getPhoto失敗:', e);
+    if (!_retry) { _dbPromise = null; return getPhoto(id, true); }
+    return null;
+  }
+}
+
+async function getAllPhotos(_retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_PHOTO, 'readonly');
+      var req = tx.objectStore(STORE_PHOTO).getAll();
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (b.createdAt || '').localeCompare(a.createdAt || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getAllPhotos失敗:', e);
+    if (!_retry) { _dbPromise = null; return getAllPhotos(true); }
+    return [];
+  }
+}
+
+async function getPhotosByGenba(genbaId, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_PHOTO, 'readonly');
+      var idx = tx.objectStore(STORE_PHOTO).index('genbaId');
+      var req = idx.getAll(genbaId);
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (b.createdAt || '').localeCompare(a.createdAt || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getPhotosByGenba失敗:', e);
+    if (!_retry) { _dbPromise = null; return getPhotosByGenba(genbaId, true); }
+    return [];
+  }
+}
+
+async function getPhotosByKoutei(kouteiId, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_PHOTO, 'readonly');
+      var idx = tx.objectStore(STORE_PHOTO).index('kouteiId');
+      var req = idx.getAll(kouteiId);
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (b.createdAt || '').localeCompare(a.createdAt || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getPhotosByKoutei失敗:', e);
+    if (!_retry) { _dbPromise = null; return getPhotosByKoutei(kouteiId, true); }
+    return [];
+  }
+}
+
+async function getPhotosByDate(date, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_PHOTO, 'readonly');
+      var idx = tx.objectStore(STORE_PHOTO).index('date');
+      var req = idx.getAll(date);
+      req.onsuccess = function() { resolve(req.result || []); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getPhotosByDate失敗:', e);
+    if (!_retry) { _dbPromise = null; return getPhotosByDate(date, true); }
+    return [];
+  }
+}
+
+async function deletePhoto(id, _retry) {
+  try {
+    // 写真画像も削除
+    await deleteImageFromIDB('photo_' + id);
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_PHOTO, 'readwrite');
+      tx.objectStore(STORE_PHOTO).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] deletePhoto失敗:', e);
+    if (!_retry) { _dbPromise = null; return deletePhoto(id, true); }
+  }
+}
+
+// ==========================================
+// 日報（nippo）CRUD
+// ==========================================
+
+async function saveNippo(nippo, _retry) {
+  if (!nippo.id) nippo.id = generateId();
+  var now = new Date().toISOString();
+  if (!nippo.createdAt) nippo.createdAt = now;
+  nippo.updatedAt = now;
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_NIPPO, 'readwrite');
+      tx.objectStore(STORE_NIPPO).put(nippo);
+      tx.oncomplete = function() { resolve(nippo); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] saveNippo失敗:', e);
+    if (!_retry) { _dbPromise = null; return saveNippo(nippo, true); }
+    return null;
+  }
+}
+
+async function getNippo(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_NIPPO, 'readonly');
+      var req = tx.objectStore(STORE_NIPPO).get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getNippo失敗:', e);
+    if (!_retry) { _dbPromise = null; return getNippo(id, true); }
+    return null;
+  }
+}
+
+async function getAllNippo(_retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_NIPPO, 'readonly');
+      var req = tx.objectStore(STORE_NIPPO).getAll();
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (b.date || '').localeCompare(a.date || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getAllNippo失敗:', e);
+    if (!_retry) { _dbPromise = null; return getAllNippo(true); }
+    return [];
+  }
+}
+
+async function getNippoByGenba(genbaId, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_NIPPO, 'readonly');
+      var idx = tx.objectStore(STORE_NIPPO).index('genbaId');
+      var req = idx.getAll(genbaId);
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (b.date || '').localeCompare(a.date || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getNippoByGenba失敗:', e);
+    if (!_retry) { _dbPromise = null; return getNippoByGenba(genbaId, true); }
+    return [];
+  }
+}
+
+async function getNippoByDate(date, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_NIPPO, 'readonly');
+      var idx = tx.objectStore(STORE_NIPPO).index('date');
+      var req = idx.getAll(date);
+      req.onsuccess = function() { resolve(req.result || []); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getNippoByDate失敗:', e);
+    if (!_retry) { _dbPromise = null; return getNippoByDate(date, true); }
+    return [];
+  }
+}
+
+async function deleteNippo(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_NIPPO, 'readwrite');
+      tx.objectStore(STORE_NIPPO).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] deleteNippo失敗:', e);
+    if (!_retry) { _dbPromise = null; return deleteNippo(id, true); }
+  }
+}
+
+// ==========================================
 // グローバル公開
 // ==========================================
 window.getDB = getDB;
@@ -848,4 +1123,21 @@ window.getScheduleByGenba = getScheduleByGenba;
 window.getScheduleByShokunin = getScheduleByShokunin;
 window.deleteSchedule = deleteSchedule;
 
-console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（職人・スケジュール対応）');
+// 写真
+window.savePhoto = savePhoto;
+window.getPhoto = getPhoto;
+window.getAllPhotos = getAllPhotos;
+window.getPhotosByGenba = getPhotosByGenba;
+window.getPhotosByKoutei = getPhotosByKoutei;
+window.getPhotosByDate = getPhotosByDate;
+window.deletePhoto = deletePhoto;
+
+// 日報
+window.saveNippo = saveNippo;
+window.getNippo = getNippo;
+window.getAllNippo = getAllNippo;
+window.getNippoByGenba = getNippoByGenba;
+window.getNippoByDate = getNippoByDate;
+window.deleteNippo = deleteNippo;
+
+console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（写真・日報対応 v4）');

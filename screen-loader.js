@@ -18,6 +18,8 @@ const SCREEN_FILES = [
   'koutei',
   'shokunin',
   'schedule',
+  'photo',
+  'nippo',
   'pricesearch',
   'help',
   'tax',

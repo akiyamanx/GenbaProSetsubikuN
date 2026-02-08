@@ -83,6 +83,14 @@ async function showScreen(screenId) {
   if (screenId === 'schedule') {
     if (typeof initScheduleScreen === 'function') initScheduleScreen();
   }
+  // v3.0追加: 写真管理画面の初期化
+  if (screenId === 'photo') {
+    if (typeof initPhotoScreen === 'function') initPhotoScreen();
+  }
+  // v3.0追加: 日報画面の初期化
+  if (screenId === 'nippo') {
+    if (typeof initNippoScreen === 'function') initNippoScreen();
+  }
   if (screenId === 'tax') {
     if (typeof selectTaxType === 'function') {
       const savedTaxType = localStorage.getItem('reform_app_tax_type') || 'blue';

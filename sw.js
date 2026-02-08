@@ -4,7 +4,7 @@
 // ★ v3.0.0: CULOchanKAIKEIproからフォーク、現場管理機能追加
 // ==========================================
 
-const CACHE_NAME = 'genba-pro-v3.2.0';
+const CACHE_NAME = 'genba-pro-v4.0.0';
 const OFFLINE_URL = 'index.html';
 
 // キャッシュするファイル（相対パス）
@@ -43,12 +43,16 @@ const FILES_TO_CACHE = [
   'koutei.js',
   'shokunin.js',
   'schedule.js',
+  'photo.js',
+  'nippo.js',
   // ★ 画面HTMLファイル（ルート直下）
   'home.html',
   'genba.html',
   'koutei.html',
   'shokunin.html',
   'schedule.html',
+  'photo.html',
+  'nippo.html',
   'pricesearch.html',
   'help.html',
   'tax.html',

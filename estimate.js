@@ -299,32 +299,69 @@ function applyBulkProfitRate() {
 }
 
 function showEstimateSuggestions(input, itemId) {
-  const value = input.value.toLowerCase();
+  const value = input.value.toLowerCase().trim();
   const dropdown = document.getElementById(`est-suggest-${itemId}`);
-  
-  if (!value || value.length < 1) {
+
+  // 2文字以上で検索開始
+  if (!value || value.length < 2) {
     dropdown.classList.remove('show');
     return;
   }
-  
-  const matches = productMaster.filter(p => 
+
+  // 1. 品名マスターから検索
+  const masterMatches = productMaster.filter(p =>
     p.officialName.toLowerCase().includes(value) ||
     p.aliases.some(a => a.toLowerCase().includes(value))
-  ).slice(0, 5);
-  
-  if (matches.length === 0) {
+  ).slice(0, 5).map(p => ({
+    name: p.officialName,
+    price: p.defaultPrice || 0,
+    category: getCategoryLabel(p.category),
+    source: 'master'
+  }));
+
+  // 2. レシート保存材料から検索
+  const savedMaterials = JSON.parse(localStorage.getItem('reform_app_materials') || '[]');
+  const savedMatches = savedMaterials.filter(m =>
+    (m.name || '').toLowerCase().includes(value)
+  ).slice(0, 3).map(m => ({
+    name: m.name || '',
+    price: m.price || 0,
+    category: m.storeName || 'レシート',
+    source: 'receipt'
+  }));
+
+  // 重複除去して結合（マスター優先）
+  const seenNames = new Set();
+  const allMatches = [];
+  [...masterMatches, ...savedMatches].forEach(m => {
+    const key = m.name.toLowerCase();
+    if (!seenNames.has(key)) {
+      seenNames.add(key);
+      allMatches.push(m);
+    }
+  });
+
+  if (allMatches.length === 0) {
     dropdown.classList.remove('show');
     return;
   }
-  
-  dropdown.innerHTML = matches.map(p => `
-    <div class="suggest-item" onclick="selectEstimateMaterial(${itemId}, '${escapeHtml(p.officialName)}', ${p.defaultPrice || 0})">
-      <span class="suggest-item-price">${p.defaultPrice ? '¥' + p.defaultPrice.toLocaleString() : ''}</span>
-      <div class="suggest-item-name">${p.officialName}</div>
-      <div class="suggest-item-category">${getCategoryLabel(p.category)}</div>
-    </div>
-  `).join('');
-  
+
+  dropdown.innerHTML = allMatches.slice(0, 8).map(m => {
+    const sourceIcon = m.source === 'receipt' ? '📷' : '📦';
+    const escapedName = escapeHtml(m.name).replace(/'/g, "\\'");
+    return `
+      <div class="suggest-item" onmousedown="selectEstimateMaterial(${itemId}, '${escapedName}', ${m.price})">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="flex: 1; min-width: 0;">
+            <div class="suggest-item-name">${sourceIcon} ${escapeHtml(m.name)}</div>
+            <div class="suggest-item-category">${escapeHtml(m.category)}</div>
+          </div>
+          <div class="suggest-item-price">${m.price ? '¥' + m.price.toLocaleString() : ''}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
   dropdown.classList.add('show');
 }
 

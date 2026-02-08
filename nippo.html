@@ -1,0 +1,151 @@
+<div id="nippo-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="showScreen('home')" title="ホームに戻る">🏠</button>
+    <h1>📋 日報管理</h1>
+    <div style="width: 40px;"></div>
+  </div>
+
+  <div class="form-container">
+    <!-- 新規作成ボタン -->
+    <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+      <button onclick="showNippoForm()" style="flex: 1; padding: 16px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px;">
+        ＋ 日報を作成
+      </button>
+      <button onclick="generateNippoWithAI()" style="flex: 1; padding: 16px; background: linear-gradient(135deg, #002a2a, #003a3a); color: #00d4ff; border: 2px solid #00d4ff; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; text-shadow: 0 0 10px #00d4ff;">
+        🤖 AI自動生成
+      </button>
+    </div>
+
+    <!-- フィルター -->
+    <div class="form-section" style="padding: 12px;">
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <select id="nippoFilterGenba" onchange="filterNippo()" style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
+          <option value="">全ての現場</option>
+        </select>
+        <input type="month" id="nippoFilterMonth" onchange="filterNippo()" style="padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
+      </div>
+    </div>
+
+    <!-- 日報一覧 -->
+    <div id="nippoList" style="margin-top: 12px;">
+      <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <div>日報がありません</div>
+        <div style="font-size: 12px; margin-top: 8px;">「日報を作成」または「AI自動生成」で作成してください</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 日報作成/編集モーダル -->
+<div id="nippoFormModal" class="ocr-loading hidden" style="background: rgba(0,0,0,0.5);">
+  <div style="background: white; border-radius: 16px; width: 95%; max-width: 480px; max-height: 92vh; display: flex; flex-direction: column;">
+    <div style="padding: 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0; font-size: 18px;" id="nippoFormTitle">📋 日報作成</h3>
+      <button id="nippoDeleteBtn" onclick="deleteCurrentNippo()" style="display: none; padding: 6px 12px; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 6px; font-size: 12px; cursor: pointer;">🗑 削除</button>
+    </div>
+
+    <div style="flex: 1; overflow-y: auto; padding: 16px;">
+      <input type="hidden" id="nippoEditId" value="">
+
+      <!-- 基本情報 -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div>
+          <label style="font-size: 13px; color: #374151; font-weight: 500;">日付 *</label>
+          <input type="date" id="nippoDate" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; margin-top: 4px;">
+        </div>
+        <div>
+          <label style="font-size: 13px; color: #374151; font-weight: 500;">天候</label>
+          <select id="nippoWeather" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; margin-top: 4px;">
+            <option value="晴れ">☀️ 晴れ</option>
+            <option value="曇り">☁️ 曇り</option>
+            <option value="雨">🌧️ 雨</option>
+            <option value="雪">❄️ 雪</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 現場選択 -->
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 13px; color: #374151; font-weight: 500;">現場 *</label>
+        <select id="nippoGenbaSelect" onchange="onNippoGenbaChange()" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; margin-top: 4px;">
+          <option value="">選択してください</option>
+        </select>
+      </div>
+
+      <!-- 作業内容 -->
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 13px; color: #374151; font-weight: 500;">作業内容 *</label>
+        <textarea id="nippoContent" rows="5" placeholder="本日の作業内容を記入..." style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; resize: vertical; margin-top: 4px; box-sizing: border-box;"></textarea>
+      </div>
+
+      <!-- 工程進捗 -->
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 13px; color: #374151; font-weight: 500;">工程進捗</label>
+        <div id="nippoKouteiProgress" style="margin-top: 8px;">
+          <div style="color: #9ca3af; font-size: 13px;">現場を選択すると工程が表示されます</div>
+        </div>
+      </div>
+
+      <!-- 作業員 -->
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 13px; color: #374151; font-weight: 500;">作業員</label>
+        <input type="text" id="nippoWorkers" placeholder="例: 田中、佐藤" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; margin-top: 4px;">
+      </div>
+
+      <!-- 本日の写真 -->
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 13px; color: #374151; font-weight: 500;">本日の写真</label>
+        <div id="nippoPhotoList" style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <div style="color: #9ca3af; font-size: 13px;">現場を選択すると当日の写真が表示されます</div>
+        </div>
+      </div>
+
+      <!-- 備考 -->
+      <div>
+        <label style="font-size: 13px; color: #374151; font-weight: 500;">備考・連絡事項</label>
+        <textarea id="nippoNotes" rows="2" placeholder="安全事項、明日の予定など" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; resize: vertical; margin-top: 4px; box-sizing: border-box;"></textarea>
+      </div>
+    </div>
+
+    <div style="padding: 12px; border-top: 1px solid #e5e7eb;">
+      <div style="display: flex; gap: 8px;">
+        <button class="data-btn backup" style="flex: 1;" onclick="closeNippoForm()">キャンセル</button>
+        <button onclick="exportNippoPDF()" style="flex: 1; padding: 14px; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">📄 PDF</button>
+        <button class="save-btn" style="flex: 1; padding: 14px; font-size: 16px;" onclick="saveNippoForm()">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI生成 - 現場選択モーダル -->
+<div id="nippoAiSelectModal" class="ocr-loading hidden" style="background: rgba(0,0,0,0.5);">
+  <div style="background: white; border-radius: 16px; width: 90%; max-width: 400px; padding: 20px;">
+    <h3 style="margin: 0 0 16px 0; font-size: 18px;">🤖 AI日報生成</h3>
+    <div style="font-size: 13px; color: #6b7280; margin-bottom: 12px;">写真と工程進捗から日報を自動作成します</div>
+
+    <div style="margin-bottom: 16px;">
+      <label style="font-size: 13px; color: #374151; font-weight: 500;">現場を選択 *</label>
+      <select id="nippoAiGenbaSelect" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; margin-top: 4px;">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+    <div style="margin-bottom: 16px;">
+      <label style="font-size: 13px; color: #374151; font-weight: 500;">対象日</label>
+      <input type="date" id="nippoAiDate" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; margin-top: 4px;">
+    </div>
+
+    <div style="display: flex; gap: 8px;">
+      <button class="data-btn backup" style="flex: 1;" onclick="document.getElementById('nippoAiSelectModal').classList.add('hidden')">キャンセル</button>
+      <button class="save-btn" style="flex: 1; padding: 14px;" onclick="executeAiNippo()">生成開始</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI生成ローディング -->
+<div id="nippoAiLoading" class="ocr-loading hidden">
+  <div class="ocr-loading-content">
+    <div class="loading-spinner"></div>
+    <div>🤖 AIが日報を生成中...</div>
+  </div>
+</div>
