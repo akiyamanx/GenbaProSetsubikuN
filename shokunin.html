@@ -1,0 +1,98 @@
+  <!-- ========== 職人・協力会社管理画面 ========== -->
+  <div id="shokunin-screen" class="screen">
+    <div class="header" style="background: linear-gradient(135deg, #1e40af, #1e3a8a);">
+      <button class="back-btn" onclick="showScreen('home')">←</button>
+      <h1>職人管理</h1>
+      <button class="header-btn" onclick="openShokuninForm()">＋</button>
+    </div>
+
+    <!-- 職種フィルタータブ -->
+    <div style="display: flex; gap: 6px; padding: 12px 16px; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+      <button class="shokunin-filter-btn active" onclick="filterShokunin('all')" data-filter="all"
+        style="padding:8px 14px; border:1px solid #d1d5db; border-radius:20px; background:white; font-size:12px; font-weight:bold; color:#6b7280; cursor:pointer; white-space:nowrap;">すべて</button>
+      <button class="shokunin-filter-btn" onclick="filterShokunin('大工')" data-filter="大工"
+        style="padding:8px 14px; border:1px solid #d1d5db; border-radius:20px; background:white; font-size:12px; font-weight:bold; color:#6b7280; cursor:pointer; white-space:nowrap;">大工</button>
+      <button class="shokunin-filter-btn" onclick="filterShokunin('電気')" data-filter="電気"
+        style="padding:8px 14px; border:1px solid #d1d5db; border-radius:20px; background:white; font-size:12px; font-weight:bold; color:#6b7280; cursor:pointer; white-space:nowrap;">電気</button>
+      <button class="shokunin-filter-btn" onclick="filterShokunin('配管')" data-filter="配管"
+        style="padding:8px 14px; border:1px solid #d1d5db; border-radius:20px; background:white; font-size:12px; font-weight:bold; color:#6b7280; cursor:pointer; white-space:nowrap;">配管</button>
+      <button class="shokunin-filter-btn" onclick="filterShokunin('ガス')" data-filter="ガス"
+        style="padding:8px 14px; border:1px solid #d1d5db; border-radius:20px; background:white; font-size:12px; font-weight:bold; color:#6b7280; cursor:pointer; white-space:nowrap;">ガス</button>
+      <button class="shokunin-filter-btn" onclick="filterShokunin('クロス')" data-filter="クロス"
+        style="padding:8px 14px; border:1px solid #d1d5db; border-radius:20px; background:white; font-size:12px; font-weight:bold; color:#6b7280; cursor:pointer; white-space:nowrap;">クロス</button>
+      <button class="shokunin-filter-btn" onclick="filterShokunin('タイル')" data-filter="タイル"
+        style="padding:8px 14px; border:1px solid #d1d5db; border-radius:20px; background:white; font-size:12px; font-weight:bold; color:#6b7280; cursor:pointer; white-space:nowrap;">タイル</button>
+      <button class="shokunin-filter-btn" onclick="filterShokunin('建具')" data-filter="建具"
+        style="padding:8px 14px; border:1px solid #d1d5db; border-radius:20px; background:white; font-size:12px; font-weight:bold; color:#6b7280; cursor:pointer; white-space:nowrap;">建具</button>
+      <button class="shokunin-filter-btn" onclick="filterShokunin('塗装')" data-filter="塗装"
+        style="padding:8px 14px; border:1px solid #d1d5db; border-radius:20px; background:white; font-size:12px; font-weight:bold; color:#6b7280; cursor:pointer; white-space:nowrap;">塗装</button>
+      <button class="shokunin-filter-btn" onclick="filterShokunin('美装')" data-filter="美装"
+        style="padding:8px 14px; border:1px solid #d1d5db; border-radius:20px; background:white; font-size:12px; font-weight:bold; color:#6b7280; cursor:pointer; white-space:nowrap;">美装</button>
+      <button class="shokunin-filter-btn" onclick="filterShokunin('その他')" data-filter="その他"
+        style="padding:8px 14px; border:1px solid #d1d5db; border-radius:20px; background:white; font-size:12px; font-weight:bold; color:#6b7280; cursor:pointer; white-space:nowrap;">その他</button>
+    </div>
+
+    <!-- 職人一覧 -->
+    <div id="shokunin-list" style="padding: 0 16px 100px;">
+      <div style="text-align: center; padding: 40px; color: #9ca3af;">
+        読み込み中...
+      </div>
+    </div>
+
+    <!-- 職人登録/編集モーダル -->
+    <div id="shokunin-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:200; overflow-y:auto;">
+      <div style="background:white; margin:20px auto; max-width:500px; border-radius:16px; overflow:hidden;">
+        <div style="background:linear-gradient(135deg, #1e40af, #1e3a8a); color:white; padding:16px; display:flex; justify-content:space-between; align-items:center;">
+          <h2 id="shokunin-modal-title" style="font-size:18px; margin:0;">職人を登録</h2>
+          <button onclick="closeShokuninModal()" style="background:rgba(255,255,255,0.2); border:none; color:white; width:36px; height:36px; border-radius:50%; font-size:18px; cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:20px;">
+          <input type="hidden" id="shokunin-edit-id">
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">名前 *</label>
+          <input type="text" id="shokunin-name" placeholder="例: 山田太郎"
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:16px;">
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">職種</label>
+          <select id="shokunin-type"
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:16px; background:white;">
+            <option value="大工">大工</option>
+            <option value="電気">電気</option>
+            <option value="配管">配管</option>
+            <option value="ガス">ガス</option>
+            <option value="クロス">クロス</option>
+            <option value="タイル">タイル</option>
+            <option value="建具">建具</option>
+            <option value="塗装">塗装</option>
+            <option value="美装">美装</option>
+            <option value="その他">その他</option>
+          </select>
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">電話番号</label>
+          <input type="tel" id="shokunin-phone" placeholder="例: 090-1234-5678"
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:16px;">
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">メール</label>
+          <input type="email" id="shokunin-email" placeholder="例: yamada@example.com"
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:16px;">
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">LINE ID</label>
+          <input type="text" id="shokunin-line" placeholder="例: yamada_line"
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:16px;">
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">日当（円）</label>
+          <input type="number" id="shokunin-rate" placeholder="例: 18000"
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:16px;">
+
+          <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">メモ</label>
+          <textarea id="shokunin-memo" placeholder="特記事項など" rows="3"
+            style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:20px; resize:vertical;"></textarea>
+
+          <button id="shokunin-save-btn"
+            style="width:100%; padding:16px; font-size:18px; font-weight:bold; background:linear-gradient(135deg, #1e40af, #1e3a8a); color:white; border:none; border-radius:12px; cursor:pointer;">
+            保存する
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>

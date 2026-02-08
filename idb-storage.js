@@ -19,10 +19,12 @@
 // ==========================================
 
 const IDB_NAME = 'reform_app_idb';
-const IDB_VERSION = 2;
+const IDB_VERSION = 3;
 const STORE_IMAGES = 'images';
 const STORE_GENBA = 'genba';
 const STORE_KOUTEI = 'koutei';
+const STORE_SHOKUNIN = 'shokunin';
+const STORE_SCHEDULE = 'schedule';
 
 // DB接続（シングルトン）
 let _dbPromise = null;
@@ -51,6 +53,19 @@ function getDB() {
       if (!db.objectStoreNames.contains(STORE_KOUTEI)) {
         var ks = db.createObjectStore(STORE_KOUTEI, { keyPath: 'id' });
         ks.createIndex('genbaId', 'genbaId', { unique: false });
+      }
+      // v3: 職人ストア
+      if (!db.objectStoreNames.contains(STORE_SHOKUNIN)) {
+        var ss = db.createObjectStore(STORE_SHOKUNIN, { keyPath: 'id' });
+        ss.createIndex('shokuType', 'shokuType', { unique: false });
+        ss.createIndex('updatedAt', 'updatedAt', { unique: false });
+      }
+      // v3: スケジュールストア
+      if (!db.objectStoreNames.contains(STORE_SCHEDULE)) {
+        var sc = db.createObjectStore(STORE_SCHEDULE, { keyPath: 'id' });
+        sc.createIndex('date', 'date', { unique: false });
+        sc.createIndex('genbaId', 'genbaId', { unique: false });
+        sc.createIndex('shokuninId', 'shokuninId', { unique: false });
       }
     };
 
@@ -572,6 +587,214 @@ async function deleteKoutei(id, _retry) {
 }
 
 // ==========================================
+// 職人（shokunin）CRUD
+// ==========================================
+
+async function saveShokunin(s, _retry) {
+  if (!s.id) s.id = generateId();
+  var now = new Date().toISOString();
+  if (!s.createdAt) s.createdAt = now;
+  s.updatedAt = now;
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_SHOKUNIN, 'readwrite');
+      tx.objectStore(STORE_SHOKUNIN).put(s);
+      tx.oncomplete = function() {
+        console.log('[IDB] saveShokunin成功:', s.id);
+        resolve(s);
+      };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] saveShokunin失敗:', e);
+    if (!_retry) { _dbPromise = null; return saveShokunin(s, true); }
+    return null;
+  }
+}
+
+async function getShokunin(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_SHOKUNIN, 'readonly');
+      var req = tx.objectStore(STORE_SHOKUNIN).get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getShokunin失敗:', e);
+    if (!_retry) { _dbPromise = null; return getShokunin(id, true); }
+    return null;
+  }
+}
+
+async function getAllShokunin(_retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_SHOKUNIN, 'readonly');
+      var req = tx.objectStore(STORE_SHOKUNIN).getAll();
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (a.name || '').localeCompare(b.name || '', 'ja');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getAllShokunin失敗:', e);
+    if (!_retry) { _dbPromise = null; return getAllShokunin(true); }
+    return [];
+  }
+}
+
+async function deleteShokunin(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_SHOKUNIN, 'readwrite');
+      tx.objectStore(STORE_SHOKUNIN).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] deleteShokunin失敗:', e);
+    if (!_retry) { _dbPromise = null; return deleteShokunin(id, true); }
+  }
+}
+
+// ==========================================
+// スケジュール（schedule）CRUD
+// ==========================================
+
+async function saveSchedule(s, _retry) {
+  if (!s.id) s.id = generateId();
+  var now = new Date().toISOString();
+  if (!s.createdAt) s.createdAt = now;
+  s.updatedAt = now;
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_SCHEDULE, 'readwrite');
+      tx.objectStore(STORE_SCHEDULE).put(s);
+      tx.oncomplete = function() {
+        console.log('[IDB] saveSchedule成功:', s.id);
+        resolve(s);
+      };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] saveSchedule失敗:', e);
+    if (!_retry) { _dbPromise = null; return saveSchedule(s, true); }
+    return null;
+  }
+}
+
+async function getSchedule(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_SCHEDULE, 'readonly');
+      var req = tx.objectStore(STORE_SCHEDULE).get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getSchedule失敗:', e);
+    if (!_retry) { _dbPromise = null; return getSchedule(id, true); }
+    return null;
+  }
+}
+
+async function getScheduleByDate(date, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_SCHEDULE, 'readonly');
+      var idx = tx.objectStore(STORE_SCHEDULE).index('date');
+      var req = idx.getAll(date);
+      req.onsuccess = function() { resolve(req.result || []); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getScheduleByDate失敗:', e);
+    if (!_retry) { _dbPromise = null; return getScheduleByDate(date, true); }
+    return [];
+  }
+}
+
+async function getScheduleByMonth(yearMonth, _retry) {
+  // yearMonth = "2026-02" のような形式
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_SCHEDULE, 'readonly');
+      var idx = tx.objectStore(STORE_SCHEDULE).index('date');
+      var range = IDBKeyRange.bound(yearMonth + '-01', yearMonth + '-31');
+      var req = idx.getAll(range);
+      req.onsuccess = function() { resolve(req.result || []); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getScheduleByMonth失敗:', e);
+    if (!_retry) { _dbPromise = null; return getScheduleByMonth(yearMonth, true); }
+    return [];
+  }
+}
+
+async function getScheduleByGenba(genbaId, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_SCHEDULE, 'readonly');
+      var idx = tx.objectStore(STORE_SCHEDULE).index('genbaId');
+      var req = idx.getAll(genbaId);
+      req.onsuccess = function() { resolve(req.result || []); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getScheduleByGenba失敗:', e);
+    if (!_retry) { _dbPromise = null; return getScheduleByGenba(genbaId, true); }
+    return [];
+  }
+}
+
+async function getScheduleByShokunin(shokuninId, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_SCHEDULE, 'readonly');
+      var idx = tx.objectStore(STORE_SCHEDULE).index('shokuninId');
+      var req = idx.getAll(shokuninId);
+      req.onsuccess = function() { resolve(req.result || []); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getScheduleByShokunin失敗:', e);
+    if (!_retry) { _dbPromise = null; return getScheduleByShokunin(shokuninId, true); }
+    return [];
+  }
+}
+
+async function deleteSchedule(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_SCHEDULE, 'readwrite');
+      tx.objectStore(STORE_SCHEDULE).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] deleteSchedule失敗:', e);
+    if (!_retry) { _dbPromise = null; return deleteSchedule(id, true); }
+  }
+}
+
+// ==========================================
 // グローバル公開
 // ==========================================
 window.getDB = getDB;
@@ -610,4 +833,19 @@ window.getKoutei = getKoutei;
 window.getKouteiByGenba = getKouteiByGenba;
 window.deleteKoutei = deleteKoutei;
 
-console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（現場・工程対応）');
+// 職人
+window.saveShokunin = saveShokunin;
+window.getShokunin = getShokunin;
+window.getAllShokunin = getAllShokunin;
+window.deleteShokunin = deleteShokunin;
+
+// スケジュール
+window.saveSchedule = saveSchedule;
+window.getSchedule = getSchedule;
+window.getScheduleByDate = getScheduleByDate;
+window.getScheduleByMonth = getScheduleByMonth;
+window.getScheduleByGenba = getScheduleByGenba;
+window.getScheduleByShokunin = getScheduleByShokunin;
+window.deleteSchedule = deleteSchedule;
+
+console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（職人・スケジュール対応）');

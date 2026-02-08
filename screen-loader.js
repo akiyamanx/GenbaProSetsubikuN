@@ -16,6 +16,8 @@ const SCREEN_FILES = [
   'home',
   'genba',
   'koutei',
+  'shokunin',
+  'schedule',
   'pricesearch',
   'help',
   'tax',
