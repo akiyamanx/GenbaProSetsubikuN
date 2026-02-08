@@ -51,6 +51,8 @@ function onMadoriToolDown(mode, wx, wy, rawX, rawY, sx, sy) {
     if (hit) {
       st.selectedId=hit.id; st.isDragging=true;
       st.dragStartWX=wx; st.dragStartWY=wy; st.dragObjStartX=hit.x; st.dragObjStartY=hit.y;
+      st.dragObjStartX2 = hit.x2 !== undefined ? hit.x2 : null;
+      st.dragObjStartY2 = hit.y2 !== undefined ? hit.y2 : null;
       if (typeof pushUndo==='function') pushUndo();
     } else {
       st.selectedId=null; st.isPanning=true;
@@ -110,7 +112,17 @@ function onMadoriToolMove(mode, wx, wy, rawX, rawY, sx, sy) {
     }
     if (st.isDragging && st.selectedId) {
       var obj=getObjectById(st.selectedId);
-      if (obj) { obj.x=st.dragObjStartX+(wx-st.dragStartWX); obj.y=st.dragObjStartY+(wy-st.dragStartWY); renderMadoriCanvas(); }
+      if (obj) {
+        var ddx=wx-st.dragStartWX, ddy=wy-st.dragStartWY;
+        obj.x=st.dragObjStartX+ddx; obj.y=st.dragObjStartY+ddy;
+        if (st.dragObjStartX2!==null) obj.x2=st.dragObjStartX2+ddx;
+        if (st.dragObjStartY2!==null) obj.y2=st.dragObjStartY2+ddy;
+        if (obj.type==='dimension') {
+          var dx2=obj.x2-obj.x, dy2=obj.y2-obj.y;
+          obj.value=Math.round(Math.sqrt(dx2*dx2+dy2*dy2));
+        }
+        renderMadoriCanvas();
+      }
     } else if (st.isPanning) {
       st.viewport.offsetX=st.panStartOffsetX+(sx-st.panStartX); st.viewport.offsetY=st.panStartOffsetY+(sy-st.panStartY); renderMadoriCanvas();
     }
