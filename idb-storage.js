@@ -19,7 +19,7 @@
 // ==========================================
 
 const IDB_NAME = 'reform_app_idb';
-const IDB_VERSION = 4;
+const IDB_VERSION = 5;
 const STORE_IMAGES = 'images';
 const STORE_GENBA = 'genba';
 const STORE_KOUTEI = 'koutei';
@@ -27,6 +27,7 @@ const STORE_SHOKUNIN = 'shokunin';
 const STORE_SCHEDULE = 'schedule';
 const STORE_PHOTO = 'photo';
 const STORE_NIPPO = 'nippo';
+const STORE_MADORI = 'madori';
 
 // DB接続（シングルトン）
 let _dbPromise = null;
@@ -81,6 +82,12 @@ function getDB() {
         var ns = db.createObjectStore(STORE_NIPPO, { keyPath: 'id' });
         ns.createIndex('genbaId', 'genbaId', { unique: false });
         ns.createIndex('date', 'date', { unique: false });
+      }
+      // v5: 間取りストア
+      if (!db.objectStoreNames.contains(STORE_MADORI)) {
+        var ms = db.createObjectStore(STORE_MADORI, { keyPath: 'id' });
+        ms.createIndex('genbaId', 'genbaId', { unique: false });
+        ms.createIndex('updatedAt', 'updatedAt', { unique: false });
       }
     };
 
@@ -1070,6 +1077,108 @@ async function deleteNippo(id, _retry) {
 }
 
 // ==========================================
+// 間取り（madori）CRUD
+// ==========================================
+
+async function saveMadoriRecord(m, _retry) {
+  if (!m.id) m.id = generateId();
+  var now = new Date().toISOString();
+  if (!m.createdAt) m.createdAt = now;
+  m.updatedAt = now;
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_MADORI, 'readwrite');
+      tx.objectStore(STORE_MADORI).put(m);
+      tx.oncomplete = function() { resolve(m); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] saveMadoriRecord失敗:', e);
+    if (!_retry) { _dbPromise = null; return saveMadoriRecord(m, true); }
+    return null;
+  }
+}
+
+async function getMadoriRecord(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_MADORI, 'readonly');
+      var req = tx.objectStore(STORE_MADORI).get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getMadoriRecord失敗:', e);
+    if (!_retry) { _dbPromise = null; return getMadoriRecord(id, true); }
+    return null;
+  }
+}
+
+async function getAllMadoriRecords(_retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_MADORI, 'readonly');
+      var req = tx.objectStore(STORE_MADORI).getAll();
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (b.updatedAt || '').localeCompare(a.updatedAt || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getAllMadoriRecords失敗:', e);
+    if (!_retry) { _dbPromise = null; return getAllMadoriRecords(true); }
+    return [];
+  }
+}
+
+async function getMadoriByGenba(genbaId, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_MADORI, 'readonly');
+      var idx = tx.objectStore(STORE_MADORI).index('genbaId');
+      var req = idx.getAll(genbaId);
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (b.updatedAt || '').localeCompare(a.updatedAt || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getMadoriByGenba失敗:', e);
+    if (!_retry) { _dbPromise = null; return getMadoriByGenba(genbaId, true); }
+    return [];
+  }
+}
+
+async function deleteMadoriRecord(id, _retry) {
+  try {
+    // サムネイルも削除
+    await deleteImageFromIDB('madori_thumb_' + id);
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_MADORI, 'readwrite');
+      tx.objectStore(STORE_MADORI).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] deleteMadoriRecord失敗:', e);
+    if (!_retry) { _dbPromise = null; return deleteMadoriRecord(id, true); }
+  }
+}
+
+// ==========================================
 // グローバル公開
 // ==========================================
 window.getDB = getDB;
@@ -1140,4 +1249,11 @@ window.getNippoByGenba = getNippoByGenba;
 window.getNippoByDate = getNippoByDate;
 window.deleteNippo = deleteNippo;
 
-console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（写真・日報対応 v4）');
+// 間取り
+window.saveMadoriRecord = saveMadoriRecord;
+window.getMadoriRecord = getMadoriRecord;
+window.getAllMadoriRecords = getAllMadoriRecords;
+window.getMadoriByGenba = getMadoriByGenba;
+window.deleteMadoriRecord = deleteMadoriRecord;
+
+console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（間取り対応 v5）');

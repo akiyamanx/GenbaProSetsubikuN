@@ -91,6 +91,10 @@ async function showScreen(screenId) {
   if (screenId === 'nippo') {
     if (typeof initNippoScreen === 'function') initNippoScreen();
   }
+  // v4.0追加: 間取りエディタ画面の初期化
+  if (screenId === 'madori') {
+    if (typeof initMadoriScreen === 'function') initMadoriScreen();
+  }
   if (screenId === 'tax') {
     if (typeof selectTaxType === 'function') {
       const savedTaxType = localStorage.getItem('reform_app_tax_type') || 'blue';

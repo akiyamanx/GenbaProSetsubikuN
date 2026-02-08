@@ -20,6 +20,7 @@ const SCREEN_FILES = [
   'schedule',
   'photo',
   'nippo',
+  'madori',
   'pricesearch',
   'help',
   'tax',
