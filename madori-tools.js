@@ -53,6 +53,15 @@ function onMadoriToolDown(mode, wx, wy, rawX, rawY, sx, sy) {
       st.dragStartWX=wx; st.dragStartWY=wy; st.dragObjStartX=hit.x; st.dragObjStartY=hit.y;
       st.dragObjStartX2 = hit.x2 !== undefined ? hit.x2 : null;
       st.dragObjStartY2 = hit.y2 !== undefined ? hit.y2 : null;
+      // 寸法線: 端点近くタッチなら端点のみドラッグ
+      st._dimEndpointDrag = null;
+      if (hit.type==='dimension') {
+        var d1=Math.sqrt(Math.pow(rawX-hit.x,2)+Math.pow(rawY-hit.y,2));
+        var d2=Math.sqrt(Math.pow(rawX-hit.x2,2)+Math.pow(rawY-hit.y2,2));
+        var epTh=100;
+        if (d1<epTh && d1<=d2) st._dimEndpointDrag=1;
+        else if (d2<epTh) st._dimEndpointDrag=2;
+      }
       if (typeof pushUndo==='function') pushUndo();
     } else {
       st.selectedId=null; st.isPanning=true;
@@ -114,9 +123,19 @@ function onMadoriToolMove(mode, wx, wy, rawX, rawY, sx, sy) {
       var obj=getObjectById(st.selectedId);
       if (obj) {
         var ddx=wx-st.dragStartWX, ddy=wy-st.dragStartWY;
-        obj.x=st.dragObjStartX+ddx; obj.y=st.dragObjStartY+ddy;
-        if (st.dragObjStartX2!==null) obj.x2=st.dragObjStartX2+ddx;
-        if (st.dragObjStartY2!==null) obj.y2=st.dragObjStartY2+ddy;
+        if (obj.type==='dimension' && st._dimEndpointDrag) {
+          // 端点のみドラッグ（伸縮）
+          if (st._dimEndpointDrag===1) {
+            obj.x=st.dragObjStartX+ddx; obj.y=st.dragObjStartY+ddy;
+          } else {
+            obj.x2=st.dragObjStartX2+ddx; obj.y2=st.dragObjStartY2+ddy;
+          }
+        } else {
+          // 全体移動
+          obj.x=st.dragObjStartX+ddx; obj.y=st.dragObjStartY+ddy;
+          if (st.dragObjStartX2!==null) obj.x2=st.dragObjStartX2+ddx;
+          if (st.dragObjStartY2!==null) obj.y2=st.dragObjStartY2+ddy;
+        }
         if (obj.type==='dimension') {
           var dx2=obj.x2-obj.x, dy2=obj.y2-obj.y;
           obj.value=Math.round(Math.sqrt(dx2*dx2+dy2*dy2));
@@ -134,7 +153,7 @@ function onMadoriToolMove(mode, wx, wy, rawX, rawY, sx, sy) {
 // === ツール別PointerUp ===
 function onMadoriToolUp(mode, wx, wy) {
   var st = window._madoriState;
-  if (mode==='select') { st.isDragging=false; st.isPanning=false; st.isResizing=false; st.resizeHandle=null; return; }
+  if (mode==='select') { st.isDragging=false; st.isPanning=false; st.isResizing=false; st.resizeHandle=null; st._dimEndpointDrag=null; return; }
   if (mode==='room' && st.drawingStart) {
     var x1=Math.min(st.drawingStart.x,wx), y1=Math.min(st.drawingStart.y,wy);
     var w=Math.abs(wx-st.drawingStart.x), h=Math.abs(wy-st.drawingStart.y);
@@ -177,7 +196,26 @@ function rotateMadoriObject() {
   var st=window._madoriState; if(!st.selectedId) return;
   var obj=getObjectById(st.selectedId); if(!obj) return;
   if(typeof pushUndo==='function') pushUndo();
-  obj.angle = ((obj.angle||0)+90) % 360; renderMadoriCanvas();
+  if (obj.type==='dimension') {
+    // x1,y1,x2,y2を中心点周りに90度回転
+    var cx=(obj.x+obj.x2)/2, cy=(obj.y+obj.y2)/2;
+    var dx1=obj.x-cx, dy1=obj.y-cy;
+    var dx2=obj.x2-cx, dy2=obj.y2-cy;
+    obj.x=cx-dy1; obj.y=cy+dx1;
+    obj.x2=cx-dy2; obj.y2=cy+dx2;
+    var ddx=obj.x2-obj.x, ddy=obj.y2-obj.y;
+    obj.value=Math.round(Math.sqrt(ddx*ddx+ddy*ddy));
+  } else if (obj.type==='wall') {
+    // 壁も同様に2点を中心周りに90度回転
+    var cx=(obj.x+obj.x2)/2, cy=(obj.y+obj.y2)/2;
+    var dx1=obj.x-cx, dy1=obj.y-cy;
+    var dx2=obj.x2-cx, dy2=obj.y2-cy;
+    obj.x=cx-dy1; obj.y=cy+dx1;
+    obj.x2=cx-dy2; obj.y2=cy+dx2;
+  } else {
+    obj.angle = ((obj.angle||0)+90) % 360;
+  }
+  renderMadoriCanvas();
 }
 function deleteMadoriObject() {
   var st=window._madoriState; if(!st.selectedId) return;
