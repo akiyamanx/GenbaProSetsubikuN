@@ -171,17 +171,13 @@ function getTalkApiKey() {
 function parseTalkAIResponse(responseText) {
   try {
     var jsonStr = responseText;
-    // ```json ... ``` で囲まれている場合に対応
-    var jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[1];
-    }
-    // ``` ... ``` で囲まれている場合にも対応
-    if (!jsonMatch) {
-      var codeMatch = responseText.match(/```\s*([\s\S]*?)\s*```/);
-      if (codeMatch) {
-        jsonStr = codeMatch[1];
-      }
+    // ```json ... ``` の除去（改行の有無に関わらず対応）
+    jsonStr = jsonStr.replace(/```json\s*/gi, '').replace(/```\s*/gi, '');
+    // 安全策：最初の { から最後の } までを抽出
+    var firstBrace = jsonStr.indexOf('{');
+    var lastBrace = jsonStr.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
     }
     jsonStr = jsonStr.trim();
 
