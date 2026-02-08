@@ -146,8 +146,16 @@ async function loadMadoriList() {
     for (var i = 0; i < list.length; i++) {
       var m = list[i];
       var date = m.updatedAt ? m.updatedAt.substring(0, 10) : '';
+      var thumbImg = '';
+      if (m.thumbnailRef) {
+        try { var td = await getImageFromIDB(m.thumbnailRef); if (td) thumbImg = td; } catch(e) {}
+      }
       html += '<div onclick="selectMadoriFromList(\'' + escapeHtml(m.id) + '\')" style="display:flex; gap:12px; align-items:center; padding:12px; background:white; border-radius:10px; margin-bottom:8px; cursor:pointer; border:1px solid #e5e7eb;">';
-      html += '<div style="width:60px; height:45px; background:#f1f5f9; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0;">📐</div>';
+      if (thumbImg) {
+        html += '<img src="' + thumbImg + '" style="width:60px; height:45px; object-fit:cover; border-radius:6px; flex-shrink:0; border:1px solid #e5e7eb;">';
+      } else {
+        html += '<div style="width:60px; height:45px; background:#f1f5f9; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0;">📐</div>';
+      }
       html += '<div style="flex:1; min-width:0;">';
       html += '<div style="font-size:14px; font-weight:bold; color:#1f2937; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escapeHtml(m.name || '無題') + '</div>';
       html += '<div style="font-size:11px; color:#9ca3af;">' + escapeHtml(m.floor || '') + ' ・ ' + date + '</div>';
@@ -276,6 +284,7 @@ async function connectBluetoothMeter() {
       window._madoriState.btDevice = device;
       window._madoriState.btCharacteristic = ch;
     }
+    updateBtBadge(true);
     alert('Bluetooth距離計に接続しました');
   } catch (e) {
     if (e.name !== 'NotFoundError') {
@@ -285,17 +294,51 @@ async function connectBluetoothMeter() {
   }
 }
 
+function updateBtBadge(connected) {
+  var badge = document.getElementById('madoriBtBadge');
+  if (badge) {
+    badge.style.display = connected ? 'flex' : 'none';
+  }
+}
+
 function onBluetoothMeasurement(event) {
   try {
     var val = event.target.value;
     var meters = val.getFloat32(0, true);
     var mm = Math.round(meters * 1000);
     console.log('[Madori] BT測定値:', mm, 'mm');
-    // 寸法ツールの入力に反映
+    // 寸法入力モーダルが開いていれば自動入力
+    var dimInput = document.getElementById('dimValueInput');
+    var dimModal = document.getElementById('madoriDimInputModal');
+    if (dimModal && dimModal.style.display === 'flex' && dimInput) {
+      dimInput.value = mm;
+      return;
+    }
+    // 寸法ツール使用中なら自動で寸法線作成
+    var st = window._madoriState;
+    if (st.mode === 'dimension' && st._dimStart) {
+      var dx = mm, dy = 0;
+      addMadoriObject({type:'dimension', x:st._dimStart.x, y:st._dimStart.y, x2:st._dimStart.x + dx, y2:st._dimStart.y + dy, value:mm, source:'bluetooth'});
+      st._dimStart = null;
+      renderMadoriCanvas();
+      return;
+    }
     alert('測定値: ' + mm + 'mm');
   } catch (e) {
     console.error('[Madori] BT測定値解析エラー:', e);
   }
+}
+
+function disconnectBluetoothMeter() {
+  var st = window._madoriState;
+  try {
+    if (st.btDevice && st.btDevice.gatt && st.btDevice.gatt.connected) {
+      st.btDevice.gatt.disconnect();
+    }
+  } catch(e) { console.error('[Madori] BT切断エラー:', e); }
+  st.btDevice = null;
+  st.btCharacteristic = null;
+  updateBtBadge(false);
 }
 
 // === AI部品提案 ===
@@ -306,6 +349,10 @@ async function suggestPartsWithAI() {
   if (!apiKey) {
     alert('Gemini APIキーが必要です。\n設定画面から入力してください。');
     return;
+  }
+  if (typeof canUseApi === 'function') {
+    var apiCheck = canUseApi();
+    if (!apiCheck.allowed) { alert(apiCheck.reason); return; }
   }
   var st = window._madoriState;
   var pipes = st.objects.filter(function(o) { return o.type === 'pipe'; });
@@ -350,6 +397,7 @@ async function suggestPartsWithAI() {
       }
     );
     if (!res.ok) throw new Error('API Error: ' + res.status);
+    if (typeof recordApiUsage === 'function') recordApiUsage();
     var data = await res.json();
     var text = data.candidates[0].content.parts[0].text;
     var match = text.match(/\{[\s\S]*\}/);
@@ -365,8 +413,9 @@ async function suggestPartsWithAI() {
 }
 
 function showAiPartsResult(result) {
-  var html = '<div style="padding:16px;">';
-  html += '<h3 style="margin:0 0 8px;">🤖 AIパーツ提案</h3>';
+  var content = document.getElementById('madoriAiResultContent');
+  if (!content) return;
+  var html = '';
   if (result.summary) html += '<p style="font-size:13px; color:#6b7280; margin:0 0 12px;">' + escapeHtml(result.summary) + '</p>';
   if (result.parts && result.parts.length > 0) {
     html += '<table style="width:100%; border-collapse:collapse; font-size:12px;">';
@@ -379,46 +428,104 @@ function showAiPartsResult(result) {
     });
     html += '</table>';
   }
-  html += '<button onclick="this.parentElement.parentElement.style.display=\'none\'" style="width:100%; margin-top:16px; padding:12px; background:#e5e7eb; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">閉じる</button>';
-  html += '</div>';
+  content.innerHTML = html;
+  var modal = document.getElementById('madoriAiResultModal');
+  if (modal) modal.style.display = 'flex';
+}
 
-  var modal = document.getElementById('madoriAiLoading');
-  if (modal) {
-    modal.innerHTML = '<div style="background:white; border-radius:16px; width:92%; max-width:500px; max-height:80vh; overflow-y:auto;">' + html + '</div>';
-    modal.style.display = 'flex';
-  }
+function closeMadoriAiResult() {
+  var modal = document.getElementById('madoriAiResultModal');
+  if (modal) modal.style.display = 'none';
 }
 
 // === PDF出力 ===
+function generateHiResCanvas() {
+  var st = window._madoriState;
+  var b = {x:Infinity,y:Infinity,x2:-Infinity,y2:-Infinity};
+  st.objects.forEach(function(o) {
+    var ob = getObjectBounds(o); if (!ob) return;
+    if (ob.x < b.x) b.x = ob.x;
+    if (ob.y < b.y) b.y = ob.y;
+    if (ob.x+ob.w > b.x2) b.x2 = ob.x+ob.w;
+    if (ob.y+ob.h > b.y2) b.y2 = ob.y+ob.h;
+  });
+  var margin = 500;
+  b.x -= margin; b.y -= margin; b.x2 += margin; b.y2 += margin;
+  var ppmm = 3; // 3px/mm for hi-res
+  var cw = (b.x2 - b.x) * ppmm, ch = (b.y2 - b.y) * ppmm;
+  var maxPx = 4000;
+  if (cw > maxPx || ch > maxPx) { var s = maxPx / Math.max(cw, ch); cw *= s; ch *= s; ppmm *= s; }
+  var c = document.createElement('canvas');
+  c.width = Math.round(cw); c.height = Math.round(ch);
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
+  // Render with custom viewport
+  var origVp = st.viewport, origPpmm = st.pixelsPerMm, origCanvas = _madoriCanvas, origCtx = _madoriCtx;
+  st.viewport = { offsetX: -b.x * ppmm, offsetY: -b.y * ppmm, scale: 1 };
+  st.pixelsPerMm = ppmm;
+  _madoriCanvas = c; _madoriCtx = ctx;
+  var order = ['room','wall','pipe','door','window','equipment','dimension'];
+  order.forEach(function(type) {
+    st.objects.forEach(function(obj) {
+      if (obj.type === type) renderMadoriObject(ctx, obj);
+    });
+  });
+  st.viewport = origVp; st.pixelsPerMm = origPpmm;
+  _madoriCanvas = origCanvas; _madoriCtx = origCtx;
+  return c.toDataURL('image/png');
+}
+
 async function exportMadoriPDF() {
   closeMadoriMenu();
   var st = window._madoriState;
   if (st.objects.length === 0) { alert('図面にオブジェクトがありません'); return; }
 
   try {
-    var canvas = document.getElementById('madoriCanvas');
-    if (!canvas) return;
-    var imgData = canvas.toDataURL('image/png');
+    var imgData = generateHiResCanvas();
     var record = st.currentMadoriId ? await getMadoriRecord(st.currentMadoriId) : null;
     var genba = st.currentGenbaId ? await getGenba(st.currentGenbaId) : null;
 
+    var equips = st.objects.filter(function(o){return o.type==='equipment';});
+    var pipes = st.objects.filter(function(o){return o.type==='pipe';});
+
     var htmlStr = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
     htmlStr += '<title>間取り図</title>';
-    htmlStr += '<style>@page{size:A4 landscape;margin:10mm;}body{font-family:"Hiragino Sans","Noto Sans JP",sans-serif;margin:0;padding:20px;}';
+    htmlStr += '<style>@page{size:A4 landscape;margin:10mm;}body{font-family:"Hiragino Sans","Noto Sans JP",sans-serif;margin:0;padding:16px;font-size:12px;}';
+    htmlStr += 'table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px;}th,td{padding:4px 6px;border:1px solid #d1d5db;text-align:left;}th{background:#f1f5f9;font-weight:bold;}';
     htmlStr += '.no-print{display:none;}@media print{.no-print{display:none!important;}-webkit-print-color-adjust:exact;print-color-adjust:exact;}</style></head><body>';
-    htmlStr += '<div style="text-align:center; margin-bottom:10px;">';
-    htmlStr += '<h2 style="margin:0;">' + escapeHtml(record ? record.name : '間取り図') + '</h2>';
-    if (genba) htmlStr += '<div style="font-size:13px; color:#666;">現場: ' + escapeHtml(genba.name) + '</div>';
-    htmlStr += '<div style="font-size:11px; color:#999;">' + new Date().toLocaleDateString('ja-JP') + '</div>';
+    htmlStr += '<div style="text-align:center; margin-bottom:8px;">';
+    htmlStr += '<h2 style="margin:0; font-size:18px;">' + escapeHtml(record ? record.name : '間取り図') + '</h2>';
+    if (genba) htmlStr += '<div style="font-size:12px; color:#666;">現場: ' + escapeHtml(genba.name) + '</div>';
+    htmlStr += '<div style="font-size:10px; color:#999;">' + new Date().toLocaleDateString('ja-JP') + '</div>';
     htmlStr += '</div>';
-    htmlStr += '<div style="text-align:center;"><img src="' + imgData + '" style="max-width:100%; max-height:70vh; border:1px solid #ddd;"></div>';
-    htmlStr += '<div style="margin-top:10px; display:flex; gap:20px; justify-content:center; font-size:11px;">';
-    htmlStr += '<span style="color:#3b82f6;">■ 給水</span>';
-    htmlStr += '<span style="color:#6b7280;">■ 排水</span>';
-    htmlStr += '<span style="color:#ef4444;">■ 給湯</span>';
-    htmlStr += '<span style="color:#eab308;">■ ガス</span>';
+    htmlStr += '<div style="text-align:center;"><img src="' + imgData + '" style="max-width:100%; max-height:55vh; border:1px solid #ddd;"></div>';
+    // 凡例
+    htmlStr += '<div style="margin:8px 0; display:flex; gap:16px; justify-content:center; font-size:11px;">';
+    htmlStr += '<span><span style="display:inline-block;width:14px;height:3px;background:#3b82f6;vertical-align:middle;margin-right:3px;"></span>給水</span>';
+    htmlStr += '<span><span style="display:inline-block;width:14px;height:3px;background:#6b7280;vertical-align:middle;margin-right:3px;"></span>排水</span>';
+    htmlStr += '<span><span style="display:inline-block;width:14px;height:3px;background:#ef4444;vertical-align:middle;margin-right:3px;"></span>給湯</span>';
+    htmlStr += '<span><span style="display:inline-block;width:14px;height:3px;background:#eab308;vertical-align:middle;margin-right:3px;"></span>ガス</span>';
     htmlStr += '</div>';
-    htmlStr += '<button class="no-print" onclick="window.print()" style="margin:20px auto; display:block; padding:12px 30px; background:#3b82f6; color:white; border:none; border-radius:8px; font-size:14px; cursor:pointer;">印刷 / PDF保存</button>';
+    // 設備リスト
+    if (equips.length > 0) {
+      htmlStr += '<h4 style="margin:8px 0 4px; font-size:13px;">設備一覧</h4><table><tr><th>種類</th><th>幅(mm)</th><th>奥行(mm)</th></tr>';
+      equips.forEach(function(eq){
+        var info=EQUIP_SIZES[eq.equipType]||{w:500,h:500,label:'?'};
+        htmlStr+='<tr><td>'+escapeHtml(eq.label||info.label)+'</td><td>'+(eq.customW||info.w)+'</td><td>'+(eq.customH||info.h)+'</td></tr>';
+      });
+      htmlStr += '</table>';
+    }
+    // 配管リスト
+    if (pipes.length > 0) {
+      htmlStr += '<h4 style="margin:8px 0 4px; font-size:13px;">配管一覧</h4><table><tr><th>用途</th><th>種類</th><th>径</th><th>長さ</th></tr>';
+      pipes.forEach(function(p){
+        var pLen=0;
+        if(p.points){for(var i=1;i<p.points.length;i++){var dx=p.points[i].x-p.points[i-1].x,dy=p.points[i].y-p.points[i-1].y;pLen+=Math.sqrt(dx*dx+dy*dy);}}
+        htmlStr+='<tr><td>'+escapeHtml(PIPE_LABELS[p.pipeType]||'-')+'</td><td>'+escapeHtml(p.pipeMaterial||'-')+'</td><td>'+escapeHtml(p.pipeDiameter||'-')+'</td><td>'+Math.round(pLen)+'mm</td></tr>';
+      });
+      htmlStr += '</table>';
+    }
+    htmlStr += '<button class="no-print" onclick="window.print()" style="margin:16px auto; display:block; padding:12px 30px; background:#3b82f6; color:white; border:none; border-radius:8px; font-size:14px; cursor:pointer;">印刷 / PDF保存</button>';
     htmlStr += '</body></html>';
 
     var w = window.open('', '_blank');
@@ -448,7 +555,9 @@ window.confirmDeleteMadori = confirmDeleteMadori;
 window.showMadoriMenu = showMadoriMenu;
 window.closeMadoriMenu = closeMadoriMenu;
 window.connectBluetoothMeter = connectBluetoothMeter;
+window.disconnectBluetoothMeter = disconnectBluetoothMeter;
 window.suggestPartsWithAI = suggestPartsWithAI;
+window.closeMadoriAiResult = closeMadoriAiResult;
 window.exportMadoriPDF = exportMadoriPDF;
 
 console.log('[madori-data.js] ✓ 間取りデータ・連携 読み込み完了');
