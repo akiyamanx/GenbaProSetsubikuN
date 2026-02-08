@@ -170,36 +170,27 @@ function getTalkApiKey() {
 
 function parseTalkAIResponse(responseText) {
   try {
-    var jsonStr = responseText;
-    // ```json ... ``` の除去（改行の有無に関わらず対応）
-    jsonStr = jsonStr.replace(/```json\s*/gi, '').replace(/```\s*/gi, '');
-    // 安全策：最初の { から最後の } までを抽出
-    var firstBrace = jsonStr.indexOf('{');
-    var lastBrace = jsonStr.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) {
-      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+    let jsonStr = responseText;
+    // 最初の { から最後の } までを抽出（```jsonなど余計な文字を全部無視）
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace = jsonStr.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1) {
+      throw new Error('JSONが見つかりません');
     }
-    jsonStr = jsonStr.trim();
+    jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
 
-    var parsed = JSON.parse(jsonStr);
-
-    // バリデーション：4カテゴリが存在するか確認
-    var categories = ['progress', 'problem', 'schedule', 'movement'];
-    for (var i = 0; i < categories.length; i++) {
-      if (!Array.isArray(parsed[categories[i]])) {
-        parsed[categories[i]] = [];
+    const parsed = JSON.parse(jsonStr);
+    const categories = ['progress', 'problem', 'schedule', 'movement'];
+    for (const cat of categories) {
+      if (!Array.isArray(parsed[cat])) {
+        parsed[cat] = [];
       }
     }
-
     return parsed;
   } catch (e) {
-    console.error('[talk-ai] AIレスポンスのパースに失敗:', e);
-    console.log('[talk-ai] 生テキスト:', responseText);
+    console.error('AIレスポンスのパースに失敗:', e);
     return {
-      progress: [],
-      problem: [],
-      schedule: [],
-      movement: [],
+      progress: [], problem: [], schedule: [], movement: [],
       parseError: true,
       rawText: responseText
     };
