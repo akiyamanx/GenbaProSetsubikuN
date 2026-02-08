@@ -21,6 +21,7 @@ const SCREEN_FILES = [
   'photo',
   'nippo',
   'madori',
+  'talk-analysis',
   'pricesearch',
   'help',
   'tax',

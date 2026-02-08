@@ -95,6 +95,10 @@ async function showScreen(screenId) {
   if (screenId === 'madori') {
     if (typeof initMadoriScreen === 'function') initMadoriScreen();
   }
+  // v0.50追加: トーク解析画面の初期化
+  if (screenId === 'talk-analysis') {
+    if (typeof initTalkAnalysisScreen === 'function') initTalkAnalysisScreen();
+  }
   if (screenId === 'tax') {
     if (typeof selectTaxType === 'function') {
       const savedTaxType = localStorage.getItem('reform_app_tax_type') || 'blue';

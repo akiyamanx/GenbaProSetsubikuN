@@ -19,7 +19,7 @@
 // ==========================================
 
 const IDB_NAME = 'reform_app_idb';
-const IDB_VERSION = 5;
+const IDB_VERSION = 6;
 const STORE_IMAGES = 'images';
 const STORE_GENBA = 'genba';
 const STORE_KOUTEI = 'koutei';
@@ -28,6 +28,7 @@ const STORE_SCHEDULE = 'schedule';
 const STORE_PHOTO = 'photo';
 const STORE_NIPPO = 'nippo';
 const STORE_MADORI = 'madori';
+const STORE_TALK_ANALYSIS = 'talkAnalysis';
 
 // DB接続（シングルトン）
 let _dbPromise = null;
@@ -88,6 +89,12 @@ function getDB() {
         var ms = db.createObjectStore(STORE_MADORI, { keyPath: 'id' });
         ms.createIndex('genbaId', 'genbaId', { unique: false });
         ms.createIndex('updatedAt', 'updatedAt', { unique: false });
+      }
+      // v6: トーク解析ストア
+      if (!db.objectStoreNames.contains(STORE_TALK_ANALYSIS)) {
+        var ts = db.createObjectStore(STORE_TALK_ANALYSIS, { keyPath: 'id', autoIncrement: true });
+        ts.createIndex('genbaId', 'genbaId', { unique: false });
+        ts.createIndex('analyzedAt', 'analyzedAt', { unique: false });
       }
     };
 
@@ -1179,6 +1186,81 @@ async function deleteMadoriRecord(id, _retry) {
 }
 
 // ==========================================
+// トーク解析（talkAnalysis）CRUD
+// ==========================================
+
+async function saveTalkAnalysis(record, _retry) {
+  var now = new Date().toISOString();
+  if (!record.analyzedAt) record.analyzedAt = now;
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_TALK_ANALYSIS, 'readwrite');
+      tx.objectStore(STORE_TALK_ANALYSIS).put(record);
+      tx.oncomplete = function() { resolve(record); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] saveTalkAnalysis失敗:', e);
+    if (!_retry) { _dbPromise = null; return saveTalkAnalysis(record, true); }
+    return null;
+  }
+}
+
+async function getTalkAnalysis(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_TALK_ANALYSIS, 'readonly');
+      var req = tx.objectStore(STORE_TALK_ANALYSIS).get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getTalkAnalysis失敗:', e);
+    if (!_retry) { _dbPromise = null; return getTalkAnalysis(id, true); }
+    return null;
+  }
+}
+
+async function getAllTalkAnalysis(_retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_TALK_ANALYSIS, 'readonly');
+      var req = tx.objectStore(STORE_TALK_ANALYSIS).getAll();
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (b.analyzedAt || '').localeCompare(a.analyzedAt || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getAllTalkAnalysis失敗:', e);
+    if (!_retry) { _dbPromise = null; return getAllTalkAnalysis(true); }
+    return [];
+  }
+}
+
+async function deleteTalkAnalysis(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_TALK_ANALYSIS, 'readwrite');
+      tx.objectStore(STORE_TALK_ANALYSIS).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] deleteTalkAnalysis失敗:', e);
+    if (!_retry) { _dbPromise = null; return deleteTalkAnalysis(id, true); }
+  }
+}
+
+// ==========================================
 // グローバル公開
 // ==========================================
 window.getDB = getDB;
@@ -1256,4 +1338,10 @@ window.getAllMadoriRecords = getAllMadoriRecords;
 window.getMadoriByGenba = getMadoriByGenba;
 window.deleteMadoriRecord = deleteMadoriRecord;
 
-console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（間取り対応 v5）');
+// トーク解析
+window.saveTalkAnalysis = saveTalkAnalysis;
+window.getTalkAnalysis = getTalkAnalysis;
+window.getAllTalkAnalysis = getAllTalkAnalysis;
+window.deleteTalkAnalysis = deleteTalkAnalysis;
+
+console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（トーク解析対応 v6）');
