@@ -449,7 +449,8 @@ async function executeAiNippo() {
 }
 
 // ==========================================
-// 報告書PDF出力
+// 報告書PDF出力（HTML印刷方式 - 日本語フォント対応）
+// doc-template.js と同じ window.open() + window.print() 方式
 // ==========================================
 
 async function exportNippoPDF() {
@@ -472,154 +473,173 @@ async function exportNippoPDF() {
 
     // 工程進捗収集
     var sliders = document.querySelectorAll('.nippo-progress-slider');
-    var progressTexts = [];
+    var progressItems = [];
     for (var i = 0; i < sliders.length; i++) {
       var s = sliders[i];
       var kId = s.getAttribute('data-koutei-id');
-      var pct = s.value;
+      var pct = parseInt(s.value) || 0;
       try {
         var k = await getKoutei(kId);
-        if (k) progressTexts.push(k.name + ': ' + pct + '%');
+        if (k) progressItems.push({ name: k.name, progress: pct });
       } catch (e) {}
     }
 
-    // 写真取得
+    // 写真取得（最大6枚）
     var photos = await getPhotosByGenba(genbaId);
     var dayPhotos = photos.filter(function(p) { return p.date === date; });
     var photoImages = [];
-    for (var j = 0; j < Math.min(dayPhotos.length, 4); j++) {
+    for (var j = 0; j < Math.min(dayPhotos.length, 6); j++) {
       var img = await getImageFromIDB(dayPhotos[j].imageRef);
-      if (img) photoImages.push(img);
+      if (img) photoImages.push({ src: img, memo: dayPhotos[j].memo || '', category: dayPhotos[j].category || '' });
     }
 
-    // PDF生成（jsPDFを使用）
-    if (typeof jspdf === 'undefined' && typeof jsPDF === 'undefined') {
-      alert('PDF生成ライブラリが読み込まれていません');
+    // 会社情報
+    var settings = JSON.parse(localStorage.getItem('reform_app_settings') || '{}');
+
+    // HTML生成
+    var html = generateNippoHTML({
+      date: date,
+      weather: weather,
+      genbaName: genbaName,
+      clientName: clientName,
+      workers: workers,
+      content: content,
+      notes: notes,
+      progressItems: progressItems,
+      photoImages: photoImages,
+      settings: settings
+    });
+
+    // 新しいウィンドウで印刷（doc-template.jsと同じ方式）
+    var printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('ポップアップがブロックされました。\nブラウザの設定でポップアップを許可してください。');
       return;
     }
 
-    var JsPDF = (typeof jspdf !== 'undefined') ? jspdf.jsPDF : jsPDF;
-    var doc = new JsPDF('p', 'mm', 'a4');
+    printWindow.document.write(html);
+    printWindow.document.close();
 
-    // フォント設定
-    doc.setFont('Helvetica');
+    await new Promise(function(resolve) {
+      printWindow.onload = resolve;
+      setTimeout(resolve, 1000);
+    });
 
-    // ヘッダー
-    doc.setFillColor(30, 58, 95);
-    doc.rect(0, 0, 210, 30, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.text('作業日報', 105, 18, { align: 'center' });
-
-    // 基本情報
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(11);
-    var y = 40;
-
-    doc.setFont('Helvetica', 'bold');
-    doc.text('日付:', 15, y);
-    doc.setFont('Helvetica', 'normal');
-    doc.text(date + '  天候: ' + weather, 45, y);
-    y += 8;
-
-    doc.setFont('Helvetica', 'bold');
-    doc.text('現場:', 15, y);
-    doc.setFont('Helvetica', 'normal');
-    doc.text(genbaName, 45, y);
-    y += 8;
-
-    if (clientName) {
-      doc.setFont('Helvetica', 'bold');
-      doc.text('お客様:', 15, y);
-      doc.setFont('Helvetica', 'normal');
-      doc.text(clientName, 45, y);
-      y += 8;
-    }
-
-    if (workers) {
-      doc.setFont('Helvetica', 'bold');
-      doc.text('作業員:', 15, y);
-      doc.setFont('Helvetica', 'normal');
-      doc.text(workers, 45, y);
-      y += 8;
-    }
-
-    // 区切り線
-    y += 4;
-    doc.setDrawColor(200, 200, 200);
-    doc.line(15, y, 195, y);
-    y += 8;
-
-    // 作業内容
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('作業内容', 15, y);
-    y += 7;
-    doc.setFont('Helvetica', 'normal');
-    doc.setFontSize(10);
-    var contentLines = doc.splitTextToSize(content, 170);
-    doc.text(contentLines, 15, y);
-    y += contentLines.length * 5 + 5;
-
-    // 工程進捗
-    if (progressTexts.length > 0) {
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text('工程進捗', 15, y);
-      y += 7;
-      doc.setFont('Helvetica', 'normal');
-      doc.setFontSize(10);
-      progressTexts.forEach(function(t) {
-        doc.text('・' + t, 20, y);
-        y += 5;
-      });
-      y += 5;
-    }
-
-    // 備考
-    if (notes) {
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text('備考', 15, y);
-      y += 7;
-      doc.setFont('Helvetica', 'normal');
-      doc.setFontSize(10);
-      var notesLines = doc.splitTextToSize(notes, 170);
-      doc.text(notesLines, 15, y);
-      y += notesLines.length * 5 + 5;
-    }
-
-    // 写真（ページ下部またはnew page）
-    if (photoImages.length > 0) {
-      if (y > 200) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text('現場写真', 15, y);
-      y += 8;
-
-      var imgX = 15;
-      photoImages.forEach(function(imgData, idx) {
-        try {
-          doc.addImage(imgData, 'JPEG', imgX, y, 42, 32);
-          imgX += 47;
-          if (idx === 1) { imgX = 15; y += 37; }
-        } catch (e) {}
-      });
-    }
-
-    // フッター
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text('現場Pro 設備くん - 作業日報', 105, 285, { align: 'center' });
-
-    doc.save('日報_' + genbaName + '_' + date + '.pdf');
+    printWindow.print();
   } catch (e) {
     console.error('[Nippo] PDF出力エラー:', e);
     alert('PDF出力に失敗しました: ' + e.message);
   }
+}
+
+function generateNippoHTML(d) {
+  var weatherIcons = { '晴れ': '☀️', '曇り': '☁️', '雨': '🌧️', '雪': '❄️' };
+  var wIcon = weatherIcons[d.weather] || '';
+
+  // 会社情報
+  var companyHtml = '';
+  var s = d.settings;
+  if (s.companyName) companyHtml += '<div style="font-size:12px;font-weight:bold;margin-bottom:1mm;">' + escapeHtml(s.companyName) + '</div>';
+  if (s.phone) companyHtml += '<div>TEL: ' + escapeHtml(s.phone) + '</div>';
+
+  // 工程進捗HTML
+  var progressHtml = '';
+  if (d.progressItems.length > 0) {
+    progressHtml = '<div class="section"><div class="section-title">工程進捗</div><table class="progress-table"><thead><tr><th style="text-align:left;">工程名</th><th style="width:100px;">進捗</th><th style="width:45px;">%</th></tr></thead><tbody>';
+    d.progressItems.forEach(function(p) {
+      var barColor = p.progress >= 100 ? '#22c55e' : (p.progress >= 50 ? '#3b82f6' : '#f59e0b');
+      progressHtml += '<tr><td>' + escapeHtml(p.name) + '</td>';
+      progressHtml += '<td><div class="progress-bar"><div class="progress-fill" style="width:' + p.progress + '%;background:' + barColor + ';"></div></div></td>';
+      progressHtml += '<td style="text-align:center;font-weight:bold;">' + p.progress + '%</td></tr>';
+    });
+    progressHtml += '</tbody></table></div>';
+  }
+
+  // 写真HTML
+  var photoHtml = '';
+  if (d.photoImages.length > 0) {
+    photoHtml = '<div class="section"><div class="section-title">現場写真</div><div class="photo-grid">';
+    d.photoImages.forEach(function(p) {
+      photoHtml += '<div class="photo-item">';
+      photoHtml += '<img src="' + p.src + '" class="photo-img">';
+      if (p.category || p.memo) {
+        photoHtml += '<div class="photo-caption">';
+        if (p.category) photoHtml += '<span class="photo-badge">' + escapeHtml(p.category) + '</span> ';
+        if (p.memo) photoHtml += escapeHtml(p.memo);
+        photoHtml += '</div>';
+      }
+      photoHtml += '</div>';
+    });
+    photoHtml += '</div></div>';
+  }
+
+  // 備考HTML
+  var notesHtml = '';
+  if (d.notes) {
+    notesHtml = '<div class="section"><div class="section-title">備考・連絡事項</div><div class="notes-content">' + escapeHtml(d.notes).replace(/\n/g, '<br>') + '</div></div>';
+  }
+
+  return '<!DOCTYPE html>\n<html lang="ja">\n<head>\n<meta charset="UTF-8">\n<title>作業日報 - ' + escapeHtml(d.genbaName) + ' ' + d.date + '</title>\n<style>\n' +
+    '* { margin: 0; padding: 0; box-sizing: border-box; }\n' +
+    '@page { size: A4 portrait; margin: 8mm 10mm 8mm 10mm; }\n' +
+    'body {\n' +
+    '  font-family: "Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro", "Yu Gothic", "游ゴシック", "Meiryo", "メイリオ", sans-serif;\n' +
+    '  font-size: 10px; color: #1a1a1a; line-height: 1.5;\n' +
+    '  -webkit-print-color-adjust: exact; print-color-adjust: exact;\n' +
+    '}\n' +
+    '.page { width: 190mm; margin: 0 auto; }\n' +
+    '.doc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4mm; padding-bottom: 2mm; border-bottom: 3px solid #1e3a5f; }\n' +
+    '.doc-title { font-size: 22px; font-weight: bold; letter-spacing: 6px; color: #1e3a5f; }\n' +
+    '.company-block { text-align: right; font-size: 9px; line-height: 1.6; }\n' +
+    '.info-table { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }\n' +
+    '.info-table td { padding: 2mm 3mm; border: 1px solid #cbd5e0; font-size: 10px; vertical-align: middle; }\n' +
+    '.info-table .label { background: #edf2f7; font-weight: bold; color: #2d3748; width: 22mm; text-align: center; }\n' +
+    '.section { margin-bottom: 4mm; }\n' +
+    '.section-title { font-size: 12px; font-weight: bold; color: #1e3a5f; border-left: 4px solid #1e3a5f; padding-left: 3mm; margin-bottom: 2mm; }\n' +
+    '.content-box { border: 1px solid #cbd5e0; border-radius: 2px; padding: 3mm; font-size: 10px; line-height: 1.8; white-space: pre-wrap; min-height: 20mm; }\n' +
+    '.progress-table { width: 100%; border-collapse: collapse; font-size: 9px; }\n' +
+    '.progress-table th { background: #edf2f7; padding: 1.5mm 2mm; border: 1px solid #cbd5e0; font-size: 9px; }\n' +
+    '.progress-table td { padding: 1.5mm 2mm; border: 1px solid #cbd5e0; }\n' +
+    '.progress-bar { width: 100%; height: 4mm; background: #e2e8f0; border-radius: 2px; overflow: hidden; }\n' +
+    '.progress-fill { height: 100%; border-radius: 2px; }\n' +
+    '.photo-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3mm; }\n' +
+    '.photo-item { border: 1px solid #cbd5e0; border-radius: 2px; overflow: hidden; }\n' +
+    '.photo-img { width: 100%; height: 35mm; object-fit: cover; display: block; }\n' +
+    '.photo-caption { padding: 1mm 2mm; font-size: 8px; color: #4a5568; }\n' +
+    '.photo-badge { background: #edf2f7; padding: 0.5mm 2mm; border-radius: 2px; font-size: 7px; font-weight: bold; }\n' +
+    '.notes-content { border: 1px solid #cbd5e0; border-radius: 2px; padding: 2mm 3mm; font-size: 9px; line-height: 1.6; background: #fffef5; }\n' +
+    '.doc-footer { font-size: 8px; color: #a0aec0; text-align: center; padding-top: 3mm; margin-top: 3mm; border-top: 1px solid #e2e8f0; }\n' +
+    '@media print { body { margin: 0; } .page { width: auto; } .no-print { display: none !important; } }\n' +
+    '@media screen { body { background: #e2e8f0; padding: 10mm; } .page { background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.15); padding: 8mm 10mm; border-radius: 2px; } }\n' +
+    '</style>\n</head>\n<body>\n<div class="page">\n' +
+
+    '<!-- ヘッダー -->\n' +
+    '<div class="doc-header">\n' +
+    '  <div><div class="doc-title">作 業 日 報</div></div>\n' +
+    '  <div class="company-block">' + companyHtml + '</div>\n' +
+    '</div>\n' +
+
+    '<!-- 基本情報テーブル -->\n' +
+    '<table class="info-table">\n' +
+    '  <tr><td class="label">日付</td><td>' + escapeHtml(d.date) + '</td><td class="label">天候</td><td>' + wIcon + ' ' + escapeHtml(d.weather) + '</td></tr>\n' +
+    '  <tr><td class="label">現場名</td><td colspan="3">' + escapeHtml(d.genbaName) + '</td></tr>\n' +
+    (d.clientName ? '  <tr><td class="label">お客様</td><td colspan="3">' + escapeHtml(d.clientName) + '</td></tr>\n' : '') +
+    (d.workers ? '  <tr><td class="label">作業員</td><td colspan="3">' + escapeHtml(d.workers) + '</td></tr>\n' : '') +
+    '</table>\n' +
+
+    '<!-- 作業内容 -->\n' +
+    '<div class="section">\n' +
+    '  <div class="section-title">作業内容</div>\n' +
+    '  <div class="content-box">' + escapeHtml(d.content) + '</div>\n' +
+    '</div>\n' +
+
+    progressHtml +
+    photoHtml +
+    notesHtml +
+
+    '<!-- フッター -->\n' +
+    '<div class="doc-footer">現場Pro 設備くん - 作業日報</div>\n' +
+    '</div>\n</body>\n</html>';
 }
 
 // ==========================================
