@@ -1,4 +1,4 @@
-<!-- v0.50追加 - Phase5-1 AIトーク解析画面のHTML構造 -->
+<!-- v0.51修正 - Phase5-1 AIトーク解析画面（ファイル読込＋LINEフォーマット対応） -->
 <div id="talk-analysis-screen" class="screen">
   <!-- ヘッダー -->
   <div class="header" style="background: linear-gradient(135deg, #1e3a5f, #0f172a);">
@@ -17,9 +17,35 @@
       </select>
     </div>
 
+    <!-- v0.51追加 - 入力タブ切り替え -->
     <div style="margin-bottom: 12px;">
       <label style="font-size: 13px; font-weight: bold; color: #374151; display: block; margin-bottom: 6px;">LINEの会話テキスト</label>
-      <textarea id="talk-input" placeholder="LINEの会話をここに貼り付けてください&#10;&#10;例：&#10;田中: お疲れ様です。今日2階の給水管、全部繋ぎ終わりました&#10;佐藤: おー早いね！ありがとう！" rows="8"></textarea>
+      <div class="input-method-tabs">
+        <button id="tab-paste" class="tab-btn active" onclick="switchTalkInputTab('paste')">📋 貼り付け</button>
+        <button id="tab-file" class="tab-btn" onclick="switchTalkInputTab('file')">📁 ファイル読込</button>
+      </div>
+
+      <!-- 貼り付けモード -->
+      <div id="talk-paste-area">
+        <textarea id="talk-input" placeholder="LINEの会話をここに貼り付けてください&#10;&#10;例：&#10;田中: お疲れ様です。今日2階の給水管、全部繋ぎ終わりました&#10;佐藤: おー早いね！ありがとう！" rows="8"></textarea>
+      </div>
+
+      <!-- ファイル読込モード -->
+      <div id="talk-file-area" style="display:none;">
+        <div class="file-drop-zone" id="talk-file-drop-zone">
+          <p style="font-size:15px; margin-bottom:8px;">📄 LINEトーク履歴ファイル(.txt)を選択</p>
+          <input type="file" id="talk-file-input" accept=".txt,.text" style="font-size:14px;" />
+          <p class="file-hint">※ LINE → トーク設定 → トーク履歴を送信 で出力したファイル</p>
+        </div>
+        <div id="talk-file-preview" style="display:none;">
+          <div class="file-info">
+            <span id="talk-file-name" style="font-weight:bold; font-size:13px;"></span>
+            <span id="talk-file-size" style="font-size:12px; color:#6b7280;"></span>
+            <button onclick="clearTalkFile()" class="clear-file-btn">✕</button>
+          </div>
+          <textarea id="talk-file-content-preview" rows="6" readonly></textarea>
+        </div>
+      </div>
     </div>
 
     <div style="display: flex; gap: 8px;">

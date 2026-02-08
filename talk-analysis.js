@@ -1,6 +1,7 @@
 // ==========================================
 // AIトーク解析のUI制御・結果表示・スケジュール連携
-// 現場Pro 設備くん v0.50 - Phase5-1
+// 現場Pro 設備くん v0.51 - Phase5-1
+// v0.51修正: ファイル読込対応・LINEヘッダー自動推定
 // ==========================================
 
 // 解析結果カテゴリ定義
@@ -39,6 +40,8 @@ var TALK_CATEGORIES = {
 var _currentTalkResult = null;
 var _currentTalkGenbaId = '';
 var _currentTalkGenbaName = '';
+// v0.51追加: ファイル読み込みテキスト保持
+var _loadedTalkFileText = null;
 
 // ==========================================
 // 画面初期化
@@ -46,6 +49,7 @@ var _currentTalkGenbaName = '';
 
 async function initTalkAnalysisScreen() {
   await loadTalkGenbaList();
+  initTalkFileInput();
   await loadTalkHistory();
 }
 
@@ -71,12 +75,133 @@ async function loadTalkGenbaList() {
 }
 
 // ==========================================
+// v0.51追加: 入力タブ切り替え
+// ==========================================
+
+function switchTalkInputTab(mode) {
+  var pasteArea = document.getElementById('talk-paste-area');
+  var fileArea = document.getElementById('talk-file-area');
+  var tabPaste = document.getElementById('tab-paste');
+  var tabFile = document.getElementById('tab-file');
+
+  if (pasteArea) pasteArea.style.display = (mode === 'paste') ? 'block' : 'none';
+  if (fileArea) fileArea.style.display = (mode === 'file') ? 'block' : 'none';
+  if (tabPaste) tabPaste.classList.toggle('active', mode === 'paste');
+  if (tabFile) tabFile.classList.toggle('active', mode === 'file');
+}
+
+// ==========================================
+// v0.51追加: ファイル読み込み処理
+// ==========================================
+
+function initTalkFileInput() {
+  var fileInput = document.getElementById('talk-file-input');
+  if (!fileInput || fileInput._talkBound) return;
+  fileInput._talkBound = true;
+
+  fileInput.addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.txt') && !file.name.endsWith('.text')) {
+      alert('テキストファイル(.txt)を選択してください');
+      fileInput.value = '';
+      return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var text = ev.target.result;
+
+      // ファイル情報表示
+      var nameEl = document.getElementById('talk-file-name');
+      var sizeEl = document.getElementById('talk-file-size');
+      var previewEl = document.getElementById('talk-file-content-preview');
+      var previewWrap = document.getElementById('talk-file-preview');
+      var dropZone = document.getElementById('talk-file-drop-zone');
+
+      if (nameEl) nameEl.textContent = file.name;
+      if (sizeEl) sizeEl.textContent = '(' + formatTalkFileSize(file.size) + ')';
+      if (previewEl) previewEl.value = text.substring(0, 500) + (text.length > 500 ? '\n...(以下省略)' : '');
+      if (previewWrap) previewWrap.style.display = 'block';
+      if (dropZone) dropZone.style.display = 'none';
+
+      // テキストを保持
+      _loadedTalkFileText = text;
+
+      // LINEヘッダーから現場名を自動推定
+      autoDetectTalkGenba(text);
+    };
+    reader.onerror = function() {
+      alert('ファイルの読み込みに失敗しました');
+    };
+    reader.readAsText(file);
+  });
+}
+
+// v0.51追加: ファイルサイズのフォーマット
+function formatTalkFileSize(bytes) {
+  if (bytes < 1024) return bytes + 'B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+}
+
+// v0.51追加: ファイルクリア
+function clearTalkFile() {
+  var fileInput = document.getElementById('talk-file-input');
+  if (fileInput) fileInput.value = '';
+  var previewWrap = document.getElementById('talk-file-preview');
+  if (previewWrap) previewWrap.style.display = 'none';
+  var dropZone = document.getElementById('talk-file-drop-zone');
+  if (dropZone) dropZone.style.display = 'block';
+  _loadedTalkFileText = null;
+}
+
+// v0.51追加: LINEヘッダーから現場名を自動推定
+function autoDetectTalkGenba(text) {
+  // LINEトーク履歴のヘッダー: [LINE] グループ名のトーク履歴
+  var headerMatch = text.match(/\[LINE\]\s*(.+?)のトーク履歴/);
+  if (!headerMatch) return;
+
+  var groupName = headerMatch[1].trim();
+  var select = document.getElementById('talk-genba-select');
+  if (!select) return;
+
+  for (var i = 0; i < select.options.length; i++) {
+    var optText = select.options[i].text;
+    // 部分一致で検索（LINEグループ名に現場名が含まれている可能性）
+    if (optText && (optText.indexOf(groupName) >= 0 || groupName.indexOf(optText) >= 0)) {
+      select.value = select.options[i].value;
+      console.log('[talk-analysis] LINEグループ名から現場を自動選択:', optText);
+      return;
+    }
+  }
+  console.log('[talk-analysis] LINEグループ名「' + groupName + '」に一致する現場が見つかりませんでした');
+}
+
+// ==========================================
+// v0.51追加: テキスト取得（貼り付け/ファイル両対応）
+// ==========================================
+
+function getTalkInputText() {
+  // ファイルモードでファイルが読み込まれている場合
+  var fileArea = document.getElementById('talk-file-area');
+  if (fileArea && fileArea.style.display !== 'none' && _loadedTalkFileText) {
+    return _loadedTalkFileText;
+  }
+  // 貼り付けモード
+  var input = document.getElementById('talk-input');
+  return input ? input.value : '';
+}
+
+// ==========================================
 // 入力クリア
 // ==========================================
 
 function clearTalkInput() {
   var input = document.getElementById('talk-input');
   if (input) input.value = '';
+  clearTalkFile();
   var results = document.getElementById('talk-results');
   if (results) { results.style.display = 'none'; results.innerHTML = ''; }
   var error = document.getElementById('talk-error');
@@ -85,17 +210,16 @@ function clearTalkInput() {
 }
 
 // ==========================================
-// 解析開始
+// 解析開始（v0.51修正: getTalkInputText()使用）
 // ==========================================
 
 async function startTalkAnalysis() {
-  var input = document.getElementById('talk-input');
   var genbaSelect = document.getElementById('talk-genba-select');
-  var text = input ? input.value.trim() : '';
+  var text = getTalkInputText().trim();
 
   // バリデーション
   if (!text) {
-    alert('会話テキストを貼り付けてください');
+    alert('会話テキストを貼り付けるか、ファイルを読み込んでください');
     return;
   }
   if (text.length < 10) {
@@ -393,7 +517,8 @@ async function showTalkHistoryDetail(id) {
     _currentTalkGenbaId = record.genbaId || '';
     _currentTalkGenbaName = record.genbaName || '';
 
-    // テキストエリアに元テキストを復元
+    // 貼り付けタブに切り替えてテキストを復元
+    switchTalkInputTab('paste');
     var input = document.getElementById('talk-input');
     if (input) input.value = record.inputText || '';
 
@@ -421,11 +546,13 @@ async function showTalkHistoryDetail(id) {
 // ==========================================
 window.initTalkAnalysisScreen = initTalkAnalysisScreen;
 window.loadTalkGenbaList = loadTalkGenbaList;
+window.switchTalkInputTab = switchTalkInputTab;
 window.clearTalkInput = clearTalkInput;
+window.clearTalkFile = clearTalkFile;
 window.startTalkAnalysis = startTalkAnalysis;
 window.displayTalkResults = displayTalkResults;
 window.applyTalkToSchedule = applyTalkToSchedule;
 window.loadTalkHistory = loadTalkHistory;
 window.showTalkHistoryDetail = showTalkHistoryDetail;
 
-console.log('[talk-analysis.js] ✓ トーク解析UIモジュール読み込み完了');
+console.log('[talk-analysis.js] ✓ トーク解析UIモジュール読み込み完了（v0.51 ファイル読込対応）');
