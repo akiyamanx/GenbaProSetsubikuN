@@ -24,6 +24,7 @@
         <select id="photoFilterGenba" onchange="onFilterGenbaChange()" style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; min-width: 120px;">
           <option value="">全ての現場</option>
         </select>
+        <button onclick="quickAddGenbaPhoto('photoFilterGenba')" style="padding: 10px 12px; font-size: 13px; font-weight: bold; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap;">＋新規</button>
         <select id="photoFilterKoutei" onchange="filterPhotos()" style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; min-width: 120px;">
           <option value="">全ての工程</option>
         </select>
@@ -78,9 +79,12 @@
       <!-- 現場選択 -->
       <div style="margin-bottom: 12px;">
         <label style="font-size: 13px; color: #374151; font-weight: 500;">現場 *</label>
-        <select id="photoGenbaSelect" onchange="onPhotoGenbaChange()" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; margin-top: 4px;">
-          <option value="">選択してください</option>
-        </select>
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
+          <select id="photoGenbaSelect" onchange="onPhotoGenbaChange()" style="flex: 1; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px;">
+            <option value="">選択してください</option>
+          </select>
+          <button onclick="quickAddGenbaPhoto('photoGenbaSelect')" style="padding: 10px 12px; font-size: 13px; font-weight: bold; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap;">＋新規</button>
+        </div>
       </div>
 
       <!-- 工程選択 -->

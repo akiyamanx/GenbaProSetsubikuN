@@ -471,6 +471,40 @@ async function suggestKouteiWithAI(genbaId) {
 }
 
 // ==========================================
+// 現場クイック追加
+// ==========================================
+
+async function quickAddGenbaPhoto(targetSelectId) {
+  var name = prompt('新しい現場名を入力してください');
+  if (!name || !name.trim()) return;
+
+  try {
+    var genba = { name: name.trim(), status: '進行中' };
+    var saved = await saveGenba(genba);
+    if (!saved) {
+      alert('現場の保存に失敗しました');
+      return;
+    }
+    // ドロップダウン再読み込み
+    await loadPhotoFilters();
+    // 指定セレクトで新規現場を自動選択
+    var select = document.getElementById(targetSelectId);
+    if (select) {
+      select.value = saved.id;
+      // 登録モーダル側なら工程リストも更新
+      if (targetSelectId === 'photoGenbaSelect') {
+        onPhotoGenbaChange();
+      } else if (targetSelectId === 'photoFilterGenba') {
+        onFilterGenbaChange();
+      }
+    }
+  } catch (e) {
+    console.error('[Photo] 現場クイック追加エラー:', e);
+    alert('現場の追加に失敗しました: ' + e.message);
+  }
+}
+
+// ==========================================
 // グローバル公開
 // ==========================================
 window.initPhotoScreen = initPhotoScreen;
@@ -488,3 +522,4 @@ window.deleteCurrentPhoto = deleteCurrentPhoto;
 window.onFilterGenbaChange = onFilterGenbaChange;
 window.classifyPhotoWithAI = classifyPhotoWithAI;
 window.suggestKouteiWithAI = suggestKouteiWithAI;
+window.quickAddGenbaPhoto = quickAddGenbaPhoto;

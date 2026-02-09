@@ -12,9 +12,12 @@
     <!-- 入力エリア -->
     <div style="margin-bottom: 16px;">
       <label style="font-size: 13px; font-weight: bold; color: #374151; display: block; margin-bottom: 6px;">対象現場</label>
-      <select id="talk-genba-select" style="width: 100%; padding: 12px; font-size: 14px; border: 2px solid #ddd; border-radius: 8px; background: white;">
-        <option value="">現場を選択してください</option>
-      </select>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <select id="talk-genba-select" style="flex: 1; padding: 12px; font-size: 14px; border: 2px solid #ddd; border-radius: 8px; background: white;">
+          <option value="">現場を選択してください</option>
+        </select>
+        <button onclick="quickAddGenbaTalk()" style="padding: 10px 12px; font-size: 13px; font-weight: bold; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap;">＋新規</button>
+      </div>
     </div>
 
     <!-- v0.51追加 - 入力タブ切り替え -->

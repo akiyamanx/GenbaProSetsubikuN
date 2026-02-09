@@ -546,6 +546,32 @@ async function showTalkHistoryDetail(id) {
 }
 
 // ==========================================
+// 現場クイック追加
+// ==========================================
+
+async function quickAddGenbaTalk() {
+  var name = prompt('新しい現場名を入力してください');
+  if (!name || !name.trim()) return;
+
+  try {
+    var genba = { name: name.trim(), status: '進行中' };
+    var saved = await saveGenba(genba);
+    if (!saved) {
+      alert('現場の保存に失敗しました');
+      return;
+    }
+    // ドロップダウン再読み込み
+    await loadTalkGenbaList();
+    // 新規現場を自動選択
+    var select = document.getElementById('talk-genba-select');
+    if (select) select.value = saved.id;
+  } catch (e) {
+    console.error('[talk-analysis] 現場クイック追加エラー:', e);
+    alert('現場の追加に失敗しました: ' + e.message);
+  }
+}
+
+// ==========================================
 // グローバル公開
 // ==========================================
 window.initTalkAnalysisScreen = initTalkAnalysisScreen;
@@ -558,5 +584,6 @@ window.displayTalkResults = displayTalkResults;
 window.applyTalkToSchedule = applyTalkToSchedule;
 window.loadTalkHistory = loadTalkHistory;
 window.showTalkHistoryDetail = showTalkHistoryDetail;
+window.quickAddGenbaTalk = quickAddGenbaTalk;
 
 console.log('[talk-analysis.js] ✓ トーク解析UIモジュール読み込み完了（v0.51 ファイル読込対応）');
