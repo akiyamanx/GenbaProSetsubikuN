@@ -234,7 +234,48 @@ function openMyScheduleForm(dateStr) {
   document.getElementById('my-schedule-date').value = dateStr || new Date().toISOString().split('T')[0];
   document.getElementById('my-schedule-end-date').value = '';
   document.getElementById('my-schedule-memo').value = '';
+  // v5.4追加 - カラーピッカー初期化
+  document.getElementById('my-schedule-color').value = '#7c3aed';
+  document.getElementById('my-schedule-color-hex').textContent = '#7c3aed';
+  initMyScheduleColorPresets();
   modal.style.display = 'block';
+}
+
+// v5.4追加 - プリセット色ボタン生成
+function initMyScheduleColorPresets() {
+  var presetsEl = document.getElementById('my-schedule-color-presets');
+  if (!presetsEl) return;
+  var colors = window.PRESET_COLORS || [
+    '#E74C3C', '#E67E22', '#F1C40F', '#2ECC71', '#1ABC9C',
+    '#3498DB', '#9B59B6', '#8B4513', '#FF69B4', '#34495E',
+    '#607D8B', '#00BCD4', '#795548', '#FF5722', '#4CAF50',
+    '#673AB7', '#009688', '#CDDC39'
+  ];
+  var html = '';
+  for (var i = 0; i < colors.length; i++) {
+    html += '<button class="color-preset-btn" style="background:' + colors[i] + ';" onclick="selectMyScheduleColor(\'' + colors[i] + '\')"></button>';
+  }
+  presetsEl.innerHTML = html;
+  // カラーピッカー変更イベント
+  var colorInput = document.getElementById('my-schedule-color');
+  colorInput.onchange = function() {
+    document.getElementById('my-schedule-color-hex').textContent = colorInput.value;
+    var btns = document.querySelectorAll('#my-schedule-color-presets .color-preset-btn');
+    for (var j = 0; j < btns.length; j++) btns[j].classList.remove('selected');
+  };
+}
+
+function selectMyScheduleColor(color) {
+  document.getElementById('my-schedule-color').value = color;
+  document.getElementById('my-schedule-color-hex').textContent = color;
+  var btns = document.querySelectorAll('#my-schedule-color-presets .color-preset-btn');
+  for (var i = 0; i < btns.length; i++) {
+    if (btns[i].style.background === color || btns[i].style.backgroundColor === color) {
+      btns[i].classList.add('selected');
+    } else {
+      btns[i].classList.remove('selected');
+    }
+  }
 }
 
 function closeMyScheduleModal() {
@@ -248,6 +289,9 @@ async function saveMyScheduleForm() {
   if (!date) { alert('日付を入力してください'); return; }
   if (!memo) { alert('メモを入力してください'); return; }
 
+  // v5.4修正 - ユーザーが選んだ色を使用
+  var selectedColor = document.getElementById('my-schedule-color').value || '#7c3aed';
+
   var entry = {
     date: date,
     endDate: document.getElementById('my-schedule-end-date').value || '',
@@ -256,7 +300,7 @@ async function saveMyScheduleForm() {
     shokuninId: '', shokuninName: '',
     memo: memo,
     category: '',
-    color: '#7c3aed',
+    color: selectedColor,
     source: 'manual',
     isUserSchedule: true
   };
@@ -291,5 +335,6 @@ window.openMyScheduleForm = openMyScheduleForm;
 window.closeMyScheduleModal = closeMyScheduleModal;
 window.saveMyScheduleForm = saveMyScheduleForm;
 window.confirmDeleteMySchedule = confirmDeleteMySchedule;
+window.selectMyScheduleColor = selectMyScheduleColor;
 
-console.log('[my-schedule.js] ✓ マイスケジュールモジュール読み込み完了（v0.53）');
+console.log('[my-schedule.js] ✓ マイスケジュールモジュール読み込み完了（v0.54）');

@@ -19,7 +19,7 @@
 // ==========================================
 
 const IDB_NAME = 'reform_app_idb';
-const IDB_VERSION = 8;
+const IDB_VERSION = 9;
 const STORE_IMAGES = 'images';
 const STORE_GENBA = 'genba';
 const STORE_KOUTEI = 'koutei';
@@ -30,6 +30,7 @@ const STORE_NIPPO = 'nippo';
 const STORE_MADORI = 'madori';
 const STORE_TALK_ANALYSIS = 'talkAnalysis';
 const STORE_KOUTEI_IMPORT = 'kouteiImport';
+const STORE_CUSTOM_CATEGORY = 'customCategory'; // v9追加
 
 // DB接続（シングルトン）
 let _dbPromise = null;
@@ -109,6 +110,11 @@ function getDB() {
         if (!schStore.indexNames.contains('source')) {
           schStore.createIndex('source', 'source', { unique: false });
         }
+      }
+      // v9: ユーザー追加工種ストア
+      if (!db.objectStoreNames.contains(STORE_CUSTOM_CATEGORY)) {
+        var ccStore = db.createObjectStore(STORE_CUSTOM_CATEGORY, { keyPath: 'id', autoIncrement: true });
+        ccStore.createIndex('name', 'name', { unique: true });
       }
     };
 
@@ -1467,4 +1473,63 @@ window.getKouteiImport = getKouteiImport;
 window.getAllKouteiImport = getAllKouteiImport;
 window.deleteKouteiImport = deleteKouteiImport;
 
-console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（ガントチャート対応 v8）');
+// ==========================================
+// v9追加: ユーザー追加工種（customCategory）CRUD
+// ==========================================
+
+async function saveCustomCategory(record, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_CUSTOM_CATEGORY, 'readwrite');
+      tx.objectStore(STORE_CUSTOM_CATEGORY).put(record);
+      tx.oncomplete = function() {
+        console.log('[IDB] saveCustomCategory成功:', record.name);
+        resolve(record);
+      };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] saveCustomCategory失敗:', e);
+    if (!_retry) { _dbPromise = null; return saveCustomCategory(record, true); }
+    return null;
+  }
+}
+
+async function getAllCustomCategory(_retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_CUSTOM_CATEGORY, 'readonly');
+      var req = tx.objectStore(STORE_CUSTOM_CATEGORY).getAll();
+      req.onsuccess = function() { resolve(req.result || []); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getAllCustomCategory失敗:', e);
+    if (!_retry) { _dbPromise = null; return getAllCustomCategory(true); }
+    return [];
+  }
+}
+
+async function deleteCustomCategory(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_CUSTOM_CATEGORY, 'readwrite');
+      tx.objectStore(STORE_CUSTOM_CATEGORY).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] deleteCustomCategory失敗:', e);
+    if (!_retry) { _dbPromise = null; return deleteCustomCategory(id, true); }
+  }
+}
+
+// ユーザー追加工種
+window.saveCustomCategory = saveCustomCategory;
+window.getAllCustomCategory = getAllCustomCategory;
+window.deleteCustomCategory = deleteCustomCategory;
+
+console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（v9 カスタム工種対応）');

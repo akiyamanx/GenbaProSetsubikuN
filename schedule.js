@@ -14,6 +14,7 @@ var _scheduleGenbaFilter = ''; // 現場フィルター
 // ==========================================
 async function initScheduleScreen() {
   bindScheduleSaveButton();
+  await loadCustomCategories(); // v5.4追加 - ユーザー追加工種をマージ
   await loadScheduleGenbaFilter();
   await renderCalendar(_scheduleYear, _scheduleMonth);
 }
@@ -158,19 +159,25 @@ async function renderCalendar(year, month) {
   if (detailEl) detailEl.style.display = 'none';
 }
 
-// 凡例描画
+// v5.4修正 - 凡例描画（＋工種追加ボタン表示）
 function renderLegend(schedules) {
   var legendEl = document.getElementById('schedule-legend');
+  var addEl = document.getElementById('schedule-legend-add');
   if (!legendEl) return;
   var used = collectUsedColors(schedules);
   var keys = Object.keys(used);
-  if (keys.length === 0) { legendEl.style.display = 'none'; return; }
+  if (keys.length === 0) {
+    legendEl.style.display = 'none';
+    if (addEl) addEl.style.display = 'block'; // ボタンは常に表示
+    return;
+  }
   var html = '';
   for (var i = 0; i < keys.length; i++) {
     html += '<div class="gantt-legend-item"><span class="gantt-legend-color" style="background:' + used[keys[i]] + ';"></span>' + escapeHtml(keys[i]) + '</div>';
   }
   legendEl.innerHTML = html;
   legendEl.style.display = 'flex';
+  if (addEl) addEl.style.display = 'block';
 }
 
 // ==========================================
@@ -401,6 +408,77 @@ async function confirmDeleteSchedule(id) {
   } catch(e) { alert('削除に失敗しました。'); }
 }
 
+// ==========================================
+// v5.4追加 - ユーザー工種追加モーダル
+// ==========================================
+function openCustomCategoryModal() {
+  var modal = document.getElementById('custom-category-modal');
+  if (!modal) return;
+  document.getElementById('custom-cat-name').value = '';
+  document.getElementById('custom-cat-color').value = '#607D8B';
+  document.getElementById('custom-cat-color-hex').textContent = '#607D8B';
+  // プリセット色ボタン生成
+  var presetsEl = document.getElementById('custom-cat-presets');
+  if (presetsEl) {
+    var html = '';
+    for (var i = 0; i < PRESET_COLORS.length; i++) {
+      html += '<button class="color-preset-btn" style="background:' + PRESET_COLORS[i] + ';" onclick="selectPresetColor(\'' + PRESET_COLORS[i] + '\')"></button>';
+    }
+    presetsEl.innerHTML = html;
+  }
+  // カラーピッカー変更イベント
+  var colorInput = document.getElementById('custom-cat-color');
+  colorInput.onchange = function() {
+    document.getElementById('custom-cat-color-hex').textContent = colorInput.value;
+    // プリセットの選択状態を解除
+    var btns = document.querySelectorAll('#custom-cat-presets .color-preset-btn');
+    for (var j = 0; j < btns.length; j++) btns[j].classList.remove('selected');
+  };
+  modal.style.display = 'block';
+}
+
+function closeCustomCategoryModal() {
+  var modal = document.getElementById('custom-category-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function selectPresetColor(color) {
+  document.getElementById('custom-cat-color').value = color;
+  document.getElementById('custom-cat-color-hex').textContent = color;
+  // 選択状態の更新
+  var btns = document.querySelectorAll('#custom-cat-presets .color-preset-btn');
+  for (var i = 0; i < btns.length; i++) {
+    if (btns[i].style.background === color || btns[i].style.backgroundColor === color) {
+      btns[i].classList.add('selected');
+    } else {
+      btns[i].classList.remove('selected');
+    }
+  }
+}
+
+async function saveCustomCategoryForm() {
+  var name = document.getElementById('custom-cat-name').value.trim();
+  var color = document.getElementById('custom-cat-color').value;
+  if (!name) { alert('工種名を入力してください'); return; }
+  // 既存チェック
+  if (KOUTEI_COLORS[name]) {
+    alert('「' + name + '」は既に登録されています');
+    return;
+  }
+  try {
+    await saveCustomCategory({ name: name, color: color });
+    // KOUTEI_COLORSにマージ
+    KOUTEI_COLORS[name] = color;
+    window.KOUTEI_COLORS = KOUTEI_COLORS;
+    closeCustomCategoryModal();
+    await renderCalendar(_scheduleYear, _scheduleMonth);
+    alert('工種「' + name + '」を追加しました');
+  } catch (e) {
+    console.error('[schedule] saveCustomCategory失敗:', e);
+    alert('保存に失敗しました');
+  }
+}
+
 // グローバル公開
 window.initScheduleScreen = initScheduleScreen;
 window.renderCalendar = renderCalendar;
@@ -415,5 +493,9 @@ window.saveScheduleForm = saveScheduleForm;
 window.bindScheduleSaveButton = bindScheduleSaveButton;
 window.confirmDeleteSchedule = confirmDeleteSchedule;
 window.onScheduleGenbaFilterChange = onScheduleGenbaFilterChange;
+window.openCustomCategoryModal = openCustomCategoryModal;
+window.closeCustomCategoryModal = closeCustomCategoryModal;
+window.selectPresetColor = selectPresetColor;
+window.saveCustomCategoryForm = saveCustomCategoryForm;
 
-console.log('[schedule.js] ✓ ガントチャートスケジュールモジュール読み込み完了（v0.53）');
+console.log('[schedule.js] ✓ ガントチャートスケジュールモジュール読み込み完了（v0.54）');

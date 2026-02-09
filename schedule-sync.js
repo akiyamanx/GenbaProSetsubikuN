@@ -1,9 +1,9 @@
 // ==========================================
 // データ一元連携ロジック（全画面共通の同期関数）
-// 現場Pro 設備くん v0.53 - Phase5-3
+// 現場Pro 設備くん v0.54 - Phase5-3追加修正
 // ==========================================
 
-// v5.3追加 - 工種カラーマップ
+// v5.4修正 - 工種カラーマップ（デフォルト）
 var KOUTEI_COLORS = {
   '解体': '#E74C3C',
   '電気': '#F1C40F',
@@ -26,7 +26,15 @@ var KOUTEI_COLORS = {
   'その他': '#95A5A6'
 };
 
-// カテゴリからカラーを自動判定
+// v5.4追加 - カラーピッカーのプリセット色
+var PRESET_COLORS = [
+  '#E74C3C', '#E67E22', '#F1C40F', '#2ECC71', '#1ABC9C',
+  '#3498DB', '#9B59B6', '#8B4513', '#FF69B4', '#34495E',
+  '#607D8B', '#00BCD4', '#795548', '#FF5722', '#4CAF50',
+  '#673AB7', '#009688', '#CDDC39'
+];
+
+// v5.4修正 - 色取得のフォールバック強化
 function getKouteiColor(category) {
   if (!category) return KOUTEI_COLORS['その他'];
   // 完全一致
@@ -39,21 +47,77 @@ function getKouteiColor(category) {
   return KOUTEI_COLORS['その他'];
 }
 
-// カテゴリを工程名から推定
-function guessCategory(name) {
-  if (!name) return '';
-  var map = [
-    ['解体', '解体'], ['電気', '電気'], ['給排水', '給排水'], ['給水', '給排水'], ['排水', '給排水'],
-    ['配管', '給排水'], ['設備', '設備'], ['ガス', 'ガス'], ['大工', '大工'], ['木工', '大工'],
-    ['クロス', 'クロス'], ['壁紙', 'クロス'], ['タイル', 'タイル'], ['建具', '建具'],
-    ['塗装', '塗装'], ['美装', '美装'], ['クリーニング', '美装'], ['検査', '検査'],
-    ['防水', '防水'], ['外壁', '外壁'], ['屋根', '屋根'], ['基礎', '基礎'],
-    ['仮設', '仮設'], ['外構', '外構'], ['内装', 'クロス'], ['床', 'クロス']
+// v5.4修正 - 工種カテゴリ推定の強化版（キーワードベース）
+function guessCategory(taskName) {
+  if (!taskName) return '';
+
+  var name = taskName.toLowerCase();
+
+  // キーワードマッピング（優先度順）
+  var keywordMap = [
+    // 解体系
+    { keywords: ['解体', '撤去', '取り壊し', 'はつり', '斫り', '取外', '取り外'], category: '解体' },
+    // 電気系
+    { keywords: ['電気', '配線', '分電盤', 'コンセント', 'スイッチ', '照明', 'エアコン', '弱電', '通信', 'lan', 'tv'], category: '電気' },
+    // 給排水・設備系
+    { keywords: ['給水', '排水', '給湯', '配管', '水道', 'ub', 'ユニットバス', '浴室', 'トイレ', '便器', '洗面', 'キッチン', '台所', '流し', '給排水', '水回り', 'シャワー', '浴槽', '設備', '衛生'], category: '給排水' },
+    // ガス系
+    { keywords: ['ガス', '給湯器', 'ボイラー'], category: 'ガス' },
+    // 大工系
+    { keywords: ['大工', '造作', '下地', 'フローリング', '床', '天井', '壁', '間仕切', 'ボード', '木工', '框', '幅木', '廻縁', '棚', '収納'], category: '大工' },
+    // クロス・内装系
+    { keywords: ['クロス', '壁紙', 'cf', 'クッションフロア', '内装', '仕上', '張替'], category: 'クロス' },
+    // タイル系
+    { keywords: ['タイル', 'モザイク'], category: 'タイル' },
+    // 建具系
+    { keywords: ['建具', 'ドア', '扉', '引戸', '引き戸', 'サッシ', '窓', '玄関', '網戸'], category: '建具' },
+    // 塗装系
+    { keywords: ['塗装', 'ペンキ', '塗り', '吹付', 'コーキング', 'シーリング'], category: '塗装' },
+    // 防水系
+    { keywords: ['防水'], category: '防水' },
+    // 美装系
+    { keywords: ['美装', 'クリーニング', '清掃', '養生', '片付'], category: '美装' },
+    // 検査系
+    { keywords: ['検査', '完了検査', '中間検査', '確認', '試運転', '引渡', '引き渡し', '竣工', '打合', '打ち合わせ', '立会'], category: '検査' },
+    // 外壁系
+    { keywords: ['外壁', 'サイディング'], category: '外壁' },
+    // 屋根系
+    { keywords: ['屋根', '板金'], category: '屋根' },
+    // 基礎系
+    { keywords: ['基礎', 'コンクリート', '型枠', '鉄筋'], category: '基礎' },
+    // 仮設系
+    { keywords: ['仮設', '足場'], category: '仮設' },
+    // 外構系
+    { keywords: ['外構', '植栽', 'フェンス', 'カーポート'], category: '外構' },
+    // 器具取付（給排水に分類）
+    { keywords: ['器具', '取付', '取り付け', '据付', '搬入', '組立'], category: '給排水' },
+    // 補修系（クロスに分類）
+    { keywords: ['補修', '手直し', 'パテ', '下地処理'], category: 'クロス' },
   ];
-  for (var i = 0; i < map.length; i++) {
-    if (name.indexOf(map[i][0]) >= 0) return map[i][1];
+
+  for (var i = 0; i < keywordMap.length; i++) {
+    var map = keywordMap[i];
+    for (var j = 0; j < map.keywords.length; j++) {
+      if (name.indexOf(map.keywords[j].toLowerCase()) !== -1) {
+        return map.category;
+      }
+    }
   }
+
   return '';
+}
+
+// v5.4追加 - ユーザー追加カテゴリをKOUTEI_COLORSにマージ
+async function loadCustomCategories() {
+  try {
+    var customs = await getAllCustomCategory();
+    for (var i = 0; i < customs.length; i++) {
+      KOUTEI_COLORS[customs[i].name] = customs[i].color;
+    }
+    console.log('[schedule-sync] カスタム工種 ' + customs.length + '件をマージ');
+  } catch (e) {
+    console.log('[schedule-sync] カスタム工種読み込みスキップ:', e.message);
+  }
 }
 
 // ==========================================
@@ -161,11 +225,13 @@ function collectUsedColors(schedules) {
 
 // グローバル公開
 window.KOUTEI_COLORS = KOUTEI_COLORS;
+window.PRESET_COLORS = PRESET_COLORS;
 window.getKouteiColor = getKouteiColor;
 window.guessCategory = guessCategory;
+window.loadCustomCategories = loadCustomCategories;
 window.syncKouteiToSchedule = syncKouteiToSchedule;
 window.syncTalkToSchedule = syncTalkToSchedule;
 window.expandSchedulesToDayMap = expandSchedulesToDayMap;
 window.collectUsedColors = collectUsedColors;
 
-console.log('[schedule-sync.js] ✓ データ一元連携モジュール読み込み完了（v0.53）');
+console.log('[schedule-sync.js] ✓ データ一元連携モジュール読み込み完了（v0.54）');

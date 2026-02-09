@@ -2225,15 +2225,17 @@
   font-weight: bold;
   margin-bottom: 2px;
 }
+/* v5.4修正 - ガントバーを3pxに細く */
 .gantt-bar {
-  height: 6px;
-  border-radius: 3px;
-  margin-bottom: 2px;
+  height: 3px;
+  border-radius: 2px;
+  margin: 2px 0;
   position: relative;
   overflow: visible;
+  cursor: pointer;
 }
 .gantt-bar.start {
-  border-radius: 3px 0 0 3px;
+  border-radius: 2px 0 0 2px;
   margin-right: -4px;
 }
 .gantt-bar.middle {
@@ -2242,17 +2244,21 @@
   margin-right: -4px;
 }
 .gantt-bar.end {
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 2px 2px 0;
   margin-left: -4px;
 }
 .gantt-bar-label {
-  position: absolute;
-  top: -14px;
-  left: 0;
-  font-size: 9px;
-  font-weight: bold;
+  font-size: 10px;
+  font-weight: 700;
   white-space: nowrap;
-  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 12px;
+  position: absolute;
+  top: -12px;
+  left: 2px;
+  color: #333;
+  text-shadow: 0 0 2px rgba(255,255,255,0.8);
 }
 .gantt-count-badge {
   font-size: 9px;
@@ -2281,4 +2287,65 @@
   height: 12px;
   border-radius: 3px;
   flex-shrink: 0;
+}
+
+/* v5.4追加 - 工種追加ボタン（凡例エリア内） */
+.gantt-legend-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #7c3aed;
+  background: #f5f3ff;
+  border: 1px dashed #7c3aed;
+  border-radius: 16px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.gantt-legend-add-btn:active {
+  background: #ede9fe;
+}
+
+/* v5.4追加 - カラーピッカープリセット */
+.color-preset-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.color-preset-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.color-preset-btn:active {
+  transform: scale(0.9);
+}
+.color-preset-btn.selected {
+  border-color: #1f2937;
+  transform: scale(1.1);
+}
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.color-picker-row input[type="color"] {
+  width: 44px;
+  height: 44px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 2px;
+}
+.color-picker-row .color-hex {
+  font-size: 14px;
+  color: #6b7280;
+  font-family: monospace;
 }

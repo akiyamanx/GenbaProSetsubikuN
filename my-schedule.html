@@ -48,7 +48,15 @@
         <input type="date" id="my-schedule-end-date" style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:16px;">
 
         <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">メモ *</label>
-        <textarea id="my-schedule-memo" placeholder="予定の内容" rows="3" style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:20px; resize:vertical;"></textarea>
+        <textarea id="my-schedule-memo" placeholder="予定の内容" rows="3" style="width:100%; padding:14px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; margin-bottom:16px; resize:vertical;"></textarea>
+
+        <!-- v5.4追加 - 色選択 -->
+        <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:14px; color:#374151;">色</label>
+        <div id="my-schedule-color-presets" class="color-preset-grid"></div>
+        <div class="color-picker-row">
+          <input type="color" id="my-schedule-color" value="#7c3aed">
+          <span id="my-schedule-color-hex" class="color-hex">#7c3aed</span>
+        </div>
 
         <button onclick="saveMyScheduleForm()" style="width:100%; padding:16px; font-size:18px; font-weight:bold; background:linear-gradient(135deg, #7c3aed, #5b21b6); color:white; border:none; border-radius:12px; cursor:pointer;">
           保存する
