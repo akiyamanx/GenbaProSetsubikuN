@@ -404,21 +404,16 @@ async function applyTalkToSchedule(itemId) {
 
   var item = items[idx];
 
-  // スケジュールデータ作成（schedule.jsの既存形式に合わせる）
-  var scheduleData = {
+  // syncTalkToSchedule()で一元連携（schedule-sync.js）
+  var talkItem = {
     date: item.date || new Date().toISOString().split('T')[0],
-    genbaId: _currentTalkGenbaId || '',
-    genbaName: _currentTalkGenbaName || '',
-    kouteiId: '',
-    kouteiName: '',
-    shokuninId: '',
-    shokuninName: item.who || '',
-    memo: '[トーク解析] ' + (item.summary || '') + (item.detail ? '\n' + item.detail : ''),
-    source: 'talk-ai'
+    summary: item.summary || '',
+    detail: item.detail || '',
+    who: item.who || ''
   };
 
   try {
-    var saved = await saveSchedule(scheduleData);
+    var saved = await syncTalkToSchedule(talkItem, _currentTalkGenbaId, _currentTalkGenbaName);
     if (saved) {
       // ボタンを「反映済み」に変更
       var btn = document.getElementById('apply-btn-' + itemId);

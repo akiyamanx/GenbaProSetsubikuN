@@ -103,6 +103,10 @@ async function showScreen(screenId) {
   if (screenId === 'koutei-import') {
     if (typeof initKouteiImport === 'function') initKouteiImport();
   }
+  // v0.53追加: マイスケジュール画面の初期化
+  if (screenId === 'my-schedule') {
+    if (typeof initMySchedule === 'function') initMySchedule();
+  }
   if (screenId === 'tax') {
     if (typeof selectTaxType === 'function') {
       const savedTaxType = localStorage.getItem('reform_app_tax_type') || 'blue';

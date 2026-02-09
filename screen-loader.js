@@ -23,6 +23,7 @@ const SCREEN_FILES = [
   'madori',
   'talk-analysis',
   'koutei-import',
+  'my-schedule',
   'pricesearch',
   'help',
   'tax',

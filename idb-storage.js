@@ -19,7 +19,7 @@
 // ==========================================
 
 const IDB_NAME = 'reform_app_idb';
-const IDB_VERSION = 7;
+const IDB_VERSION = 8;
 const STORE_IMAGES = 'images';
 const STORE_GENBA = 'genba';
 const STORE_KOUTEI = 'koutei';
@@ -102,6 +102,13 @@ function getDB() {
         var ki = db.createObjectStore(STORE_KOUTEI_IMPORT, { keyPath: 'id', autoIncrement: true });
         ki.createIndex('genbaId', 'genbaId', { unique: false });
         ki.createIndex('importedAt', 'importedAt', { unique: false });
+      }
+      // v8: scheduleストアにsourceインデックス追加
+      if (db.objectStoreNames.contains(STORE_SCHEDULE)) {
+        var schStore = e.target.transaction.objectStore(STORE_SCHEDULE);
+        if (!schStore.indexNames.contains('source')) {
+          schStore.createIndex('source', 'source', { unique: false });
+        }
       }
     };
 
@@ -815,6 +822,35 @@ async function getScheduleByShokunin(shokuninId, _retry) {
   }
 }
 
+// v8追加: 月表示用 - endDateを含む全スケジュール取得
+async function getScheduleForMonthView(yearMonth, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_SCHEDULE, 'readonly');
+      var req = tx.objectStore(STORE_SCHEDULE).getAll();
+      req.onsuccess = function() {
+        var all = req.result || [];
+        var monthStart = yearMonth + '-01';
+        var monthEnd = yearMonth + '-31';
+        var filtered = all.filter(function(s) {
+          var start = s.date || '';
+          var end = s.endDate || s.date || '';
+          // 期間がこの月と重なるかチェック
+          return start <= monthEnd && end >= monthStart;
+        });
+        filtered.sort(function(a, b) { return (a.date || '').localeCompare(b.date || ''); });
+        resolve(filtered);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getScheduleForMonthView失敗:', e);
+    if (!_retry) { _dbPromise = null; return getScheduleForMonthView(yearMonth, true); }
+    return [];
+  }
+}
+
 async function deleteSchedule(id, _retry) {
   try {
     var db = await getDB();
@@ -1393,6 +1429,7 @@ window.getScheduleByMonth = getScheduleByMonth;
 window.getScheduleByGenba = getScheduleByGenba;
 window.getScheduleByShokunin = getScheduleByShokunin;
 window.deleteSchedule = deleteSchedule;
+window.getScheduleForMonthView = getScheduleForMonthView;
 
 // 写真
 window.savePhoto = savePhoto;
@@ -1430,4 +1467,4 @@ window.getKouteiImport = getKouteiImport;
 window.getAllKouteiImport = getAllKouteiImport;
 window.deleteKouteiImport = deleteKouteiImport;
 
-console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（工程取込対応 v7）');
+console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（ガントチャート対応 v8）');

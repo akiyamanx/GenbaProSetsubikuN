@@ -330,32 +330,19 @@ function renderKouteiImportCard(item, index) {
 // スケジュール反映
 // ==========================================
 
-// 工程アイテムからスケジュールデータを生成
-function buildKouteiScheduleData(item) {
-  return {
-    date: item.startDate || new Date().toISOString().split('T')[0],
-    genbaId: _kouteiImportGenbaId || '',
-    genbaName: _kouteiImportGenbaName || '',
-    kouteiId: '', kouteiName: item.name || '',
-    shokuninId: '', shokuninName: item.who || '',
-    memo: '[工程取込] ' + (item.name || '') + (item.endDate ? '\n終了: ' + item.endDate : '') + (item.note ? '\n' + item.note : ''),
-    source: 'koutei-import'
-  };
-}
-
 // 反映済みボタンに変更
 function markKouteiApplied(index) {
   var btn = document.getElementById('koutei-apply-btn-' + index);
   if (btn) { btn.textContent = '✅ 反映済み'; btn.classList.add('applied'); btn.disabled = true; }
 }
 
-// 1件反映
+// 1件反映（syncKouteiToSchedule使用）
 async function applyKouteiToSchedule(index) {
   if (!_kouteiImportResult || !_kouteiImportResult.koutei || !_kouteiImportResult.koutei[index]) {
     alert('該当する工程が見つかりません'); return;
   }
   try {
-    var saved = await saveSchedule(buildKouteiScheduleData(_kouteiImportResult.koutei[index]));
+    var saved = await syncKouteiToSchedule(_kouteiImportResult.koutei[index], _kouteiImportGenbaId, _kouteiImportGenbaName);
     if (saved) { markKouteiApplied(index); }
     else { alert('スケジュールの保存に失敗しました。'); }
   } catch (e) {
@@ -364,7 +351,7 @@ async function applyKouteiToSchedule(index) {
   }
 }
 
-// 全件反映
+// 全件反映（syncKouteiToSchedule使用）
 async function applyAllKouteiToSchedule() {
   if (!_kouteiImportResult || !_kouteiImportResult.koutei || _kouteiImportResult.koutei.length === 0) {
     alert('反映する工程がありません'); return;
@@ -374,7 +361,7 @@ async function applyAllKouteiToSchedule() {
   var items = _kouteiImportResult.koutei;
   for (var i = 0; i < items.length; i++) {
     try {
-      var saved = await saveSchedule(buildKouteiScheduleData(items[i]));
+      var saved = await syncKouteiToSchedule(items[i], _kouteiImportGenbaId, _kouteiImportGenbaName);
       if (saved) { successCount++; markKouteiApplied(i); }
     } catch (e) { console.error('[koutei-import] 全件反映エラー (index=' + i + '):', e); }
   }

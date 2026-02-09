@@ -2175,3 +2175,110 @@
   margin-bottom: 12px;
   font-size: 13px;
 }
+
+/* ============================================ */
+/* v0.53追加 - ガントチャートカレンダー          */
+/* ============================================ */
+.gantt-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: #e5e7eb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.gantt-dow {
+  background: #f9fafb;
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 8px 0;
+}
+.gantt-day {
+  background: white;
+  min-height: 70px;
+  padding: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s;
+}
+.gantt-day:active {
+  background: #f5f3ff;
+}
+.gantt-day.today {
+  background: #faf5ff;
+  box-shadow: inset 0 0 0 2px #7c3aed;
+}
+.gantt-day.weekend {
+  background: #fefce8;
+}
+.gantt-day.today.weekend {
+  background: #faf5ff;
+}
+.gantt-day.other-month {
+  background: #f3f4f6;
+  cursor: default;
+}
+.gantt-day-number {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+.gantt-bar {
+  height: 6px;
+  border-radius: 3px;
+  margin-bottom: 2px;
+  position: relative;
+  overflow: visible;
+}
+.gantt-bar.start {
+  border-radius: 3px 0 0 3px;
+  margin-right: -4px;
+}
+.gantt-bar.middle {
+  border-radius: 0;
+  margin-left: -4px;
+  margin-right: -4px;
+}
+.gantt-bar.end {
+  border-radius: 0 3px 3px 0;
+  margin-left: -4px;
+}
+.gantt-bar-label {
+  position: absolute;
+  top: -14px;
+  left: 0;
+  font-size: 9px;
+  font-weight: bold;
+  white-space: nowrap;
+  line-height: 1;
+}
+.gantt-count-badge {
+  font-size: 9px;
+  color: #9ca3af;
+  text-align: center;
+  display: block;
+}
+.gantt-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+.gantt-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #4b5563;
+}
+.gantt-legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
