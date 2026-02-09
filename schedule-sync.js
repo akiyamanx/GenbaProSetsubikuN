@@ -60,10 +60,14 @@ function guessCategory(name) {
 // 工程表取込 → スケジュール同期
 // ==========================================
 async function syncKouteiToSchedule(kouteiItem, genbaId, genbaName) {
+  console.log('[schedule-sync] syncKouteiToSchedule 入力:', JSON.stringify(kouteiItem));
+  console.log('[schedule-sync] genbaId:', genbaId, 'genbaName:', genbaName);
   var cat = kouteiItem.category || guessCategory(kouteiItem.name);
+  var dateVal = kouteiItem.startDate || new Date().toISOString().split('T')[0];
+  var endDateVal = kouteiItem.endDate || kouteiItem.startDate || dateVal;
   var entry = {
-    date: kouteiItem.startDate || new Date().toISOString().split('T')[0],
-    endDate: kouteiItem.endDate || kouteiItem.startDate || '',
+    date: dateVal,
+    endDate: endDateVal,
     genbaId: genbaId || '',
     genbaName: genbaName || '',
     kouteiId: '',
@@ -76,17 +80,22 @@ async function syncKouteiToSchedule(kouteiItem, genbaId, genbaName) {
     source: 'koutei_import',
     isUserSchedule: false
   };
-  return await saveSchedule(entry);
+  console.log('[schedule-sync] 保存するentry:', JSON.stringify(entry));
+  var result = await saveSchedule(entry);
+  console.log('[schedule-sync] saveSchedule結果:', result ? 'OK id=' + result.id : 'FAIL');
+  return result;
 }
 
 // ==========================================
 // トーク解析 → スケジュール同期
 // ==========================================
 async function syncTalkToSchedule(talkItem, genbaId, genbaName) {
+  console.log('[schedule-sync] syncTalkToSchedule 入力:', JSON.stringify(talkItem));
   var cat = guessCategory(talkItem.summary || '');
+  var dateVal = talkItem.date || new Date().toISOString().split('T')[0];
   var entry = {
-    date: talkItem.date || new Date().toISOString().split('T')[0],
-    endDate: talkItem.endDate || talkItem.date || '',
+    date: dateVal,
+    endDate: talkItem.endDate || talkItem.date || dateVal,
     genbaId: genbaId || '',
     genbaName: genbaName || '',
     kouteiId: '',
@@ -99,7 +108,10 @@ async function syncTalkToSchedule(talkItem, genbaId, genbaName) {
     source: 'talk_analysis',
     isUserSchedule: false
   };
-  return await saveSchedule(entry);
+  console.log('[schedule-sync] 保存するentry:', JSON.stringify(entry));
+  var result = await saveSchedule(entry);
+  console.log('[schedule-sync] saveSchedule結果:', result ? 'OK id=' + result.id : 'FAIL');
+  return result;
 }
 
 // ==========================================

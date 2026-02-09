@@ -58,9 +58,14 @@ async function renderCalendar(year, month) {
 
   // スケジュール取得（複数日またぎ対応）
   var ym = year + '-' + String(month + 1).padStart(2, '0');
+  console.log('[schedule] renderCalendar 対象月:', ym);
   var schedules = [];
   try {
     schedules = await getScheduleForMonthView(ym);
+    console.log('[schedule] getScheduleForMonthView結果:', schedules.length, '件');
+    if (schedules.length > 0) {
+      console.log('[schedule] 先頭データ:', JSON.stringify(schedules[0]));
+    }
   } catch(e) {
     console.error('[schedule] getScheduleForMonthView失敗:', e);
     try { schedules = await getScheduleByMonth(ym); } catch(e2) {}
@@ -69,6 +74,7 @@ async function renderCalendar(year, month) {
   // 現場フィルター適用
   if (_scheduleGenbaFilter) {
     schedules = schedules.filter(function(s) { return s.genbaId === _scheduleGenbaFilter; });
+    console.log('[schedule] フィルター後:', schedules.length, '件');
   }
 
   // 月の範囲
@@ -78,6 +84,7 @@ async function renderCalendar(year, month) {
 
   // 日ごとのマップ生成（複数日またぎ展開）
   var dayMap = expandSchedulesToDayMap(schedules, monthStart, monthEnd);
+  console.log('[schedule] dayMap keys:', Object.keys(dayMap).join(', '));
 
   // カレンダー計算
   var firstDay = new Date(year, month, 1);
@@ -348,7 +355,7 @@ async function saveScheduleForm() {
     var id = document.getElementById('schedule-edit-id').value;
     var schedule = {};
     if (id) {
-      try { schedule = (await withTimeout(getSchedule(id), 5000)) || {}; } catch(e) { schedule = { id: id }; }
+      try { schedule = (await getSchedule(id)) || {}; } catch(e) { schedule = { id: id }; }
     }
     schedule.date = date;
     schedule.endDate = document.getElementById('schedule-end-date').value || '';
@@ -367,14 +374,16 @@ async function saveScheduleForm() {
     if (!schedule.color) schedule.color = getKouteiColor(schedule.category);
     if (!schedule.source) schedule.source = 'manual';
 
-    var result = await withTimeout(saveSchedule(schedule), 8000);
+    console.log('[schedule] saveScheduleForm 保存データ:', JSON.stringify(schedule));
+    var result = await saveSchedule(schedule);
+    console.log('[schedule] saveSchedule結果:', result ? 'OK id=' + result.id : 'FAIL');
     if (!result) { alert('保存に失敗しました。'); return; }
     closeScheduleModal();
     await renderCalendar(_scheduleYear, _scheduleMonth);
     if (date) showDayDetail(date);
   } catch(e) {
     console.error('[schedule] save失敗:', e);
-    alert(e.message === 'TIMEOUT' ? '保存がタイムアウトしました。' : '保存に失敗しました: ' + e.message);
+    alert('保存に失敗しました: ' + e.message);
   } finally {
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存する'; }
   }
