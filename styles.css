@@ -2178,6 +2178,7 @@
 
 /* ============================================ */
 /* v0.53追加 - ガントチャートカレンダー          */
+/* v5.4修正 - マス目縦幅自動拡張 + 選択ハイライト */
 /* ============================================ */
 .gantt-calendar {
   display: grid;
@@ -2197,28 +2198,33 @@
 }
 .gantt-day {
   background: white;
-  min-height: 70px;
+  min-height: 50px;
   padding: 4px;
   cursor: pointer;
   position: relative;
   transition: background 0.15s;
+  overflow: hidden;
 }
 .gantt-day:active {
   background: #f5f3ff;
 }
 .gantt-day.today {
-  background: #faf5ff;
+  background: #FFF8E1;
   box-shadow: inset 0 0 0 2px #7c3aed;
 }
 .gantt-day.weekend {
   background: #fefce8;
 }
 .gantt-day.today.weekend {
-  background: #faf5ff;
+  background: #FFF8E1;
 }
 .gantt-day.other-month {
   background: #f3f4f6;
   cursor: default;
+}
+/* v5.4追加 - 選択した日のハイライト */
+.gantt-day.selected {
+  background: #EDE7F6 !important;
 }
 .gantt-day-number {
   font-size: 13px;

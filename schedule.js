@@ -49,7 +49,17 @@ function onScheduleGenbaFilterChange() {
 
 // ==========================================
 // ガントチャートカレンダー描画
+// v5.4修正 - 行高さ自動拡張 + タップハイライト
 // ==========================================
+
+// v5.4追加 - 週の最大予定数から行の高さを計算
+function calcRowHeight(maxEvents) {
+  var baseHeight = 50;
+  var perEventHeight = 20; // ラベル12px + バー3px + margin5px
+  if (maxEvents <= 1) return baseHeight;
+  return baseHeight + (maxEvents - 1) * perEventHeight;
+}
+
 async function renderCalendar(year, month) {
   var calEl = document.getElementById('schedule-calendar');
   if (!calEl) return;
@@ -64,9 +74,6 @@ async function renderCalendar(year, month) {
   try {
     schedules = await getScheduleForMonthView(ym);
     console.log('[schedule] getScheduleForMonthView結果:', schedules.length, '件');
-    if (schedules.length > 0) {
-      console.log('[schedule] 先頭データ:', JSON.stringify(schedules[0]));
-    }
   } catch(e) {
     console.error('[schedule] getScheduleForMonthView失敗:', e);
     try { schedules = await getScheduleByMonth(ym); } catch(e2) {}
@@ -75,7 +82,6 @@ async function renderCalendar(year, month) {
   // 現場フィルター適用
   if (_scheduleGenbaFilter) {
     schedules = schedules.filter(function(s) { return s.genbaId === _scheduleGenbaFilter; });
-    console.log('[schedule] フィルター後:', schedules.length, '件');
   }
 
   // 月の範囲
@@ -85,7 +91,6 @@ async function renderCalendar(year, month) {
 
   // 日ごとのマップ生成（複数日またぎ展開）
   var dayMap = expandSchedulesToDayMap(schedules, monthStart, monthEnd);
-  console.log('[schedule] dayMap keys:', Object.keys(dayMap).join(', '));
 
   // カレンダー計算
   var firstDay = new Date(year, month, 1);
@@ -93,6 +98,36 @@ async function renderCalendar(year, month) {
   var totalDays = lastDay.getDate();
   var today = new Date();
   var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  var maxBars = 4;
+
+  // v5.4追加 - 週ごとの最大予定数を事前計算
+  var cellSlots = []; // 全セル情報（空セル含む）
+  // 空セル（月初の前）
+  for (var e = 0; e < startDow; e++) {
+    cellSlots.push({ type: 'empty', count: 0 });
+  }
+  // 各日セル
+  for (var day = 1; day <= totalDays; day++) {
+    var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    var entries = dayMap[dateStr] || [];
+    cellSlots.push({ type: 'day', day: day, dateStr: dateStr, entries: entries, count: Math.min(entries.length, maxBars) });
+  }
+  // 月末の空セル
+  var endDow = (startDow + totalDays) % 7;
+  if (endDow > 0) {
+    for (var fill = endDow; fill < 7; fill++) {
+      cellSlots.push({ type: 'empty', count: 0 });
+    }
+  }
+  // 週ごとの行高さを計算
+  var rowHeights = [];
+  for (var r = 0; r < cellSlots.length; r += 7) {
+    var maxInRow = 0;
+    for (var c = 0; c < 7 && (r + c) < cellSlots.length; c++) {
+      if (cellSlots[r + c].count > maxInRow) maxInRow = cellSlots[r + c].count;
+    }
+    rowHeights.push(calcRowHeight(maxInRow));
+  }
 
   // 曜日ヘッダー
   var html = '<div class="gantt-calendar">';
@@ -102,27 +137,29 @@ async function renderCalendar(year, month) {
     html += '<div class="gantt-dow" style="color:' + dowColors[d] + ';">' + dowNames[d] + '</div>';
   }
 
-  // 空セル（月初の前）
-  for (var e = 0; e < startDow; e++) {
-    html += '<div class="gantt-day other-month"></div>';
-  }
+  // 全セル描画（行高さ付き）
+  for (var ci = 0; ci < cellSlots.length; ci++) {
+    var rowIdx = Math.floor(ci / 7);
+    var rh = rowHeights[rowIdx] || 50;
+    var slot = cellSlots[ci];
 
-  // 各日セル
-  for (var day = 1; day <= totalDays; day++) {
-    var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-    var isToday = (dateStr === todayStr);
-    var dow = (startDow + day - 1) % 7;
-    var entries = dayMap[dateStr] || [];
-    var cls = 'gantt-day' + (isToday ? ' today' : '') + (dow === 0 || dow === 6 ? ' weekend' : '');
+    if (slot.type === 'empty') {
+      html += '<div class="gantt-day other-month" style="min-height:' + rh + 'px;"></div>';
+      continue;
+    }
 
-    html += '<div class="' + cls + '" onclick="showDayDetail(\'' + dateStr + '\')">';
-    html += '<div class="gantt-day-number" style="color:' + dowColors[dow] + ';">' + day + '</div>';
+    var isToday = (slot.dateStr === todayStr);
+    var isSelected = (slot.dateStr === _scheduleSelectedDate);
+    var dow = (startDow + slot.day - 1) % 7;
+    var cls = 'gantt-day' + (isToday ? ' today' : '') + (dow === 0 || dow === 6 ? ' weekend' : '') + (isSelected ? ' selected' : '');
 
-    // ガントバー描画（最大4本）
-    var maxBars = 4;
-    var shown = Math.min(entries.length, maxBars);
+    html += '<div class="' + cls + '" data-date="' + slot.dateStr + '" style="min-height:' + rh + 'px;" onclick="onDayClick(\'' + slot.dateStr + '\', this)">';
+    html += '<div class="gantt-day-number" style="color:' + dowColors[dow] + ';">' + slot.day + '</div>';
+
+    // ガントバー描画
+    var shown = Math.min(slot.entries.length, maxBars);
     for (var bi = 0; bi < shown; bi++) {
-      var item = entries[bi];
+      var item = slot.entries[bi];
       var sc = item.schedule;
       var color = sc.color || getKouteiColor(sc.category || guessCategory(sc.kouteiName || ''));
       var label = '';
@@ -133,21 +170,12 @@ async function renderCalendar(year, month) {
       if (label) html += '<span class="gantt-bar-label" style="color:' + color + ';">' + escapeHtml(label).substring(0, 6) + '</span>';
       html += '</div>';
     }
-    if (entries.length > maxBars) {
-      html += '<span class="gantt-count-badge">+' + (entries.length - maxBars) + '</span>';
-    } else if (entries.length > 0 && entries.length <= 2) {
-      // 件数バッジ（少数件の場合も表示）
+    if (slot.entries.length > maxBars) {
+      html += '<span class="gantt-count-badge">+' + (slot.entries.length - maxBars) + '</span>';
     }
     html += '</div>';
   }
 
-  // 月末の空セル
-  var endDow = (startDow + totalDays) % 7;
-  if (endDow > 0) {
-    for (var fill = endDow; fill < 7; fill++) {
-      html += '<div class="gantt-day other-month"></div>';
-    }
-  }
   html += '</div>';
   calEl.innerHTML = html;
 
@@ -157,6 +185,17 @@ async function renderCalendar(year, month) {
   // 日詳細パネルを非表示
   var detailEl = document.getElementById('schedule-day-detail');
   if (detailEl) detailEl.style.display = 'none';
+}
+
+// v5.4追加 - 日付タップ時のハイライト＋詳細表示
+function onDayClick(dateStr, el) {
+  // 前の選択を解除
+  var prev = document.querySelector('#schedule-calendar .gantt-day.selected');
+  if (prev) prev.classList.remove('selected');
+  // タップした日をハイライト
+  if (el) el.classList.add('selected');
+  // 日詳細を表示
+  showDayDetail(dateStr);
 }
 
 // v5.4修正 - 凡例描画（＋工種追加ボタン表示）
@@ -193,13 +232,16 @@ function nextMonth() {
   if (_scheduleMonth > 11) { _scheduleMonth = 0; _scheduleYear++; }
   renderCalendar(_scheduleYear, _scheduleMonth);
 }
-function goToday() {
+async function goToday() {
   var now = new Date();
   _scheduleYear = now.getFullYear();
   _scheduleMonth = now.getMonth();
-  renderCalendar(_scheduleYear, _scheduleMonth);
   var todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-  showDayDetail(todayStr);
+  _scheduleSelectedDate = todayStr;
+  await renderCalendar(_scheduleYear, _scheduleMonth);
+  // ハイライト付きで詳細表示
+  var todayEl = document.querySelector('#schedule-calendar .gantt-day[data-date="' + todayStr + '"]');
+  onDayClick(todayStr, todayEl);
 }
 
 // ==========================================
@@ -493,9 +535,10 @@ window.saveScheduleForm = saveScheduleForm;
 window.bindScheduleSaveButton = bindScheduleSaveButton;
 window.confirmDeleteSchedule = confirmDeleteSchedule;
 window.onScheduleGenbaFilterChange = onScheduleGenbaFilterChange;
+window.onDayClick = onDayClick;
 window.openCustomCategoryModal = openCustomCategoryModal;
 window.closeCustomCategoryModal = closeCustomCategoryModal;
 window.selectPresetColor = selectPresetColor;
 window.saveCustomCategoryForm = saveCustomCategoryForm;
 
-console.log('[schedule.js] ✓ ガントチャートスケジュールモジュール読み込み完了（v0.54）');
+console.log('[schedule.js] ✓ ガントチャートスケジュールモジュール読み込み完了（v0.55）');

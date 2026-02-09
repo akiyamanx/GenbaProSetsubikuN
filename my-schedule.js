@@ -42,7 +42,17 @@ async function loadMyGenbaList() {
 
 // ==========================================
 // カレンダー描画
+// v5.4修正 - 行高さ自動拡張 + タップハイライト
 // ==========================================
+
+// v5.4追加 - 行高さ計算（schedule.jsと同じロジック）
+function calcMyRowHeight(maxEvents) {
+  var baseHeight = 50;
+  var perEventHeight = 20;
+  if (maxEvents <= 1) return baseHeight;
+  return baseHeight + (maxEvents - 1) * perEventHeight;
+}
+
 async function renderMyCalendar(year, month) {
   var calEl = document.getElementById('my-schedule-calendar');
   if (!calEl) return;
@@ -73,6 +83,32 @@ async function renderMyCalendar(year, month) {
   var totalDays = lastDay.getDate();
   var today = new Date();
   var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  var maxBars = 3;
+
+  // v5.4追加 - 週ごとの最大予定数を事前計算
+  var cellSlots = [];
+  for (var e = 0; e < startDow; e++) {
+    cellSlots.push({ type: 'empty', count: 0 });
+  }
+  for (var day = 1; day <= totalDays; day++) {
+    var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    var entries = dayMap[dateStr] || [];
+    cellSlots.push({ type: 'day', day: day, dateStr: dateStr, entries: entries, count: Math.min(entries.length, maxBars) });
+  }
+  var endDow = (startDow + totalDays) % 7;
+  if (endDow > 0) {
+    for (var fill = endDow; fill < 7; fill++) {
+      cellSlots.push({ type: 'empty', count: 0 });
+    }
+  }
+  var rowHeights = [];
+  for (var r = 0; r < cellSlots.length; r += 7) {
+    var maxInRow = 0;
+    for (var c = 0; c < 7 && (r + c) < cellSlots.length; c++) {
+      if (cellSlots[r + c].count > maxInRow) maxInRow = cellSlots[r + c].count;
+    }
+    rowHeights.push(calcMyRowHeight(maxInRow));
+  }
 
   var html = '<div class="gantt-calendar">';
   var dowNames = ['日','月','火','水','木','金','土'];
@@ -81,24 +117,28 @@ async function renderMyCalendar(year, month) {
     html += '<div class="gantt-dow" style="color:' + dowColors[d] + ';">' + dowNames[d] + '</div>';
   }
 
-  for (var e = 0; e < startDow; e++) {
-    html += '<div class="gantt-day other-month"></div>';
-  }
+  // 全セル描画（行高さ付き）
+  for (var ci = 0; ci < cellSlots.length; ci++) {
+    var rowIdx = Math.floor(ci / 7);
+    var rh = rowHeights[rowIdx] || 50;
+    var slot = cellSlots[ci];
 
-  for (var day = 1; day <= totalDays; day++) {
-    var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-    var isToday = (dateStr === todayStr);
-    var dow = (startDow + day - 1) % 7;
-    var entries = dayMap[dateStr] || [];
-    var cls = 'gantt-day' + (isToday ? ' today' : '') + (dow === 0 || dow === 6 ? ' weekend' : '');
+    if (slot.type === 'empty') {
+      html += '<div class="gantt-day other-month" style="min-height:' + rh + 'px;"></div>';
+      continue;
+    }
 
-    html += '<div class="' + cls + '" onclick="showMyDayDetail(\'' + dateStr + '\')">';
-    html += '<div class="gantt-day-number" style="color:' + dowColors[dow] + ';">' + day + '</div>';
+    var isToday = (slot.dateStr === todayStr);
+    var isSelected = (slot.dateStr === _mySchSelectedDate);
+    var dow = (startDow + slot.day - 1) % 7;
+    var cls = 'gantt-day' + (isToday ? ' today' : '') + (dow === 0 || dow === 6 ? ' weekend' : '') + (isSelected ? ' selected' : '');
 
-    var maxBars = 3;
-    var shown = Math.min(entries.length, maxBars);
+    html += '<div class="' + cls + '" data-date="' + slot.dateStr + '" style="min-height:' + rh + 'px;" onclick="onMyDayClick(\'' + slot.dateStr + '\', this)">';
+    html += '<div class="gantt-day-number" style="color:' + dowColors[dow] + ';">' + slot.day + '</div>';
+
+    var shown = Math.min(slot.entries.length, maxBars);
     for (var bi = 0; bi < shown; bi++) {
-      var item = entries[bi];
+      var item = slot.entries[bi];
       var sc = item.schedule;
       var color = sc.color || getKouteiColor(sc.category || guessCategory(sc.kouteiName || ''));
       var label = '';
@@ -109,18 +149,12 @@ async function renderMyCalendar(year, month) {
       if (label) html += '<span class="gantt-bar-label" style="color:' + color + ';">' + escapeHtml(label).substring(0, 5) + '</span>';
       html += '</div>';
     }
-    if (entries.length > maxBars) {
-      html += '<span class="gantt-count-badge">+' + (entries.length - maxBars) + '</span>';
+    if (slot.entries.length > maxBars) {
+      html += '<span class="gantt-count-badge">+' + (slot.entries.length - maxBars) + '</span>';
     }
     html += '</div>';
   }
 
-  var endDow = (startDow + totalDays) % 7;
-  if (endDow > 0) {
-    for (var fill = endDow; fill < 7; fill++) {
-      html += '<div class="gantt-day other-month"></div>';
-    }
-  }
   html += '</div>';
   calEl.innerHTML = html;
 
@@ -144,6 +178,14 @@ async function renderMyCalendar(year, month) {
   if (detailEl) detailEl.style.display = 'none';
 }
 
+// v5.4追加 - 日付タップ時のハイライト＋詳細表示
+function onMyDayClick(dateStr, el) {
+  var prev = document.querySelector('#my-schedule-calendar .gantt-day.selected');
+  if (prev) prev.classList.remove('selected');
+  if (el) el.classList.add('selected');
+  showMyDayDetail(dateStr);
+}
+
 // ==========================================
 // 月送り
 // ==========================================
@@ -157,13 +199,15 @@ function nextMyMonth() {
   if (_mySchMonth > 11) { _mySchMonth = 0; _mySchYear++; }
   renderMyCalendar(_mySchYear, _mySchMonth);
 }
-function goMyToday() {
+async function goMyToday() {
   var now = new Date();
   _mySchYear = now.getFullYear();
   _mySchMonth = now.getMonth();
-  renderMyCalendar(_mySchYear, _mySchMonth);
   var todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-  showMyDayDetail(todayStr);
+  _mySchSelectedDate = todayStr;
+  await renderMyCalendar(_mySchYear, _mySchMonth);
+  var todayEl = document.querySelector('#my-schedule-calendar .gantt-day[data-date="' + todayStr + '"]');
+  onMyDayClick(todayStr, todayEl);
 }
 
 // ==========================================
@@ -336,5 +380,6 @@ window.closeMyScheduleModal = closeMyScheduleModal;
 window.saveMyScheduleForm = saveMyScheduleForm;
 window.confirmDeleteMySchedule = confirmDeleteMySchedule;
 window.selectMyScheduleColor = selectMyScheduleColor;
+window.onMyDayClick = onMyDayClick;
 
-console.log('[my-schedule.js] ✓ マイスケジュールモジュール読み込み完了（v0.54）');
+console.log('[my-schedule.js] ✓ マイスケジュールモジュール読み込み完了（v0.55）');
