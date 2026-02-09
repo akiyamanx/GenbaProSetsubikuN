@@ -1,0 +1,85 @@
+<!-- v0.52追加 - Phase5-2 AI工程表取込画面 -->
+<div id="koutei-import-screen" class="screen">
+  <!-- ヘッダー -->
+  <div class="header" style="background: linear-gradient(135deg, #e65100, #bf360c);">
+    <button class="header-btn" onclick="showScreen('home')" style="font-size: 18px;">←</button>
+    <h1>📋 AI工程表取込</h1>
+    <div style="width:40px;"></div>
+  </div>
+
+  <div style="padding: 16px; max-width: 600px; margin: 0 auto;">
+
+    <!-- 取込方法選択 -->
+    <div style="margin-bottom: 16px;">
+      <label style="font-size: 13px; font-weight: bold; color: #374151; display: block; margin-bottom: 6px;">取込方法</label>
+      <div class="import-method-btns">
+        <button class="import-method-btn" onclick="triggerKouteiCamera()">
+          <span class="icon">📷</span>
+          カメラ撮影
+        </button>
+        <button class="import-method-btn" onclick="triggerKouteiGallery()">
+          <span class="icon">🖼️</span>
+          ギャラリー
+        </button>
+        <button class="import-method-btn" onclick="triggerKouteiFile()">
+          <span class="icon">📄</span>
+          ファイル選択
+        </button>
+      </div>
+      <input type="file" id="kouteiCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handleKouteiFileSelect(event, 'camera')">
+      <input type="file" id="kouteiGalleryInput" accept="image/*" style="display: none;" onchange="handleKouteiFileSelect(event, 'gallery')">
+      <input type="file" id="kouteiFileInput" accept="image/*,.pdf" style="display: none;" onchange="handleKouteiFileSelect(event, 'file')">
+    </div>
+
+    <!-- プレビューエリア -->
+    <div id="koutei-import-preview" class="koutei-preview" style="display: none;">
+      <img id="kouteiPreviewImg" style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid #ddd;">
+      <div class="file-info" style="margin-top: 8px;">
+        <span id="kouteiFileName" style="font-weight: bold; font-size: 13px;"></span>
+        <span id="kouteiFileSize" style="font-size: 12px; color: #6b7280;"></span>
+        <button onclick="clearKouteiPreview()" class="clear-file-btn">✕</button>
+      </div>
+    </div>
+
+    <!-- 現場選択 -->
+    <div style="margin-bottom: 16px;">
+      <label style="font-size: 13px; font-weight: bold; color: #374151; display: block; margin-bottom: 6px;">対象現場</label>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <select id="koutei-import-genba-select" style="flex: 1; padding: 12px; font-size: 14px; border: 2px solid #ddd; border-radius: 8px; background: white;">
+          <option value="">現場を選択してください</option>
+        </select>
+        <button onclick="quickAddGenbaKouteiImport()" style="padding: 10px 12px; font-size: 13px; font-weight: bold; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap;">＋新規</button>
+      </div>
+    </div>
+
+    <!-- 解析ボタン -->
+    <button id="koutei-analyze-btn" onclick="startKouteiAnalysis()" disabled>
+      📋 AIに読み取らせる
+    </button>
+
+    <!-- ローディング表示 -->
+    <div id="koutei-import-loading" class="talk-loading" style="display: none;">
+      <div class="spinner"></div>
+      <div style="font-size: 16px; font-weight: bold; color: #374151;">AIが工程表を読み取っています...</div>
+      <div style="font-size: 13px; color: #9ca3af; margin-top: 4px;">画像の解析にはしばらく時間がかかります</div>
+    </div>
+
+    <!-- エラー表示 -->
+    <div id="koutei-import-error" style="display: none; margin-top: 16px; padding: 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; color: #dc2626; font-size: 14px;"></div>
+
+    <!-- 解析結果エリア -->
+    <div id="koutei-import-results" style="display: none; margin-top: 16px;"></div>
+
+    <!-- 取込履歴エリア -->
+    <div style="margin-top: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div style="font-size: 15px; font-weight: bold; color: #374151;">📜 過去の取込履歴</div>
+        <button onclick="loadKouteiImportHistory()" style="padding: 6px 12px; font-size: 12px; background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer;">更新</button>
+      </div>
+      <div id="koutei-import-history-list">
+        <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 13px;">履歴を読み込み中...</div>
+      </div>
+    </div>
+
+  </div>
+</div>

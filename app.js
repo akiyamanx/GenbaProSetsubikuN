@@ -99,6 +99,10 @@ async function showScreen(screenId) {
   if (screenId === 'talk-analysis') {
     if (typeof initTalkAnalysisScreen === 'function') initTalkAnalysisScreen();
   }
+  // v0.52追加: 工程表取込画面の初期化
+  if (screenId === 'koutei-import') {
+    if (typeof initKouteiImport === 'function') initKouteiImport();
+  }
   if (screenId === 'tax') {
     if (typeof selectTaxType === 'function') {
       const savedTaxType = localStorage.getItem('reform_app_tax_type') || 'blue';

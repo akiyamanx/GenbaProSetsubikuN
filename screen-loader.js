@@ -22,6 +22,7 @@ const SCREEN_FILES = [
   'nippo',
   'madori',
   'talk-analysis',
+  'koutei-import',
   'pricesearch',
   'help',
   'tax',

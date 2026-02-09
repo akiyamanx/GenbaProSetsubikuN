@@ -19,7 +19,7 @@
 // ==========================================
 
 const IDB_NAME = 'reform_app_idb';
-const IDB_VERSION = 6;
+const IDB_VERSION = 7;
 const STORE_IMAGES = 'images';
 const STORE_GENBA = 'genba';
 const STORE_KOUTEI = 'koutei';
@@ -29,6 +29,7 @@ const STORE_PHOTO = 'photo';
 const STORE_NIPPO = 'nippo';
 const STORE_MADORI = 'madori';
 const STORE_TALK_ANALYSIS = 'talkAnalysis';
+const STORE_KOUTEI_IMPORT = 'kouteiImport';
 
 // DB接続（シングルトン）
 let _dbPromise = null;
@@ -95,6 +96,12 @@ function getDB() {
         var ts = db.createObjectStore(STORE_TALK_ANALYSIS, { keyPath: 'id', autoIncrement: true });
         ts.createIndex('genbaId', 'genbaId', { unique: false });
         ts.createIndex('analyzedAt', 'analyzedAt', { unique: false });
+      }
+      // v7: 工程表取込ストア
+      if (!db.objectStoreNames.contains(STORE_KOUTEI_IMPORT)) {
+        var ki = db.createObjectStore(STORE_KOUTEI_IMPORT, { keyPath: 'id', autoIncrement: true });
+        ki.createIndex('genbaId', 'genbaId', { unique: false });
+        ki.createIndex('importedAt', 'importedAt', { unique: false });
       }
     };
 
@@ -1261,6 +1268,79 @@ async function deleteTalkAnalysis(id, _retry) {
 }
 
 // ==========================================
+// 工程表取込（kouteiImport）CRUD
+// ==========================================
+
+async function saveKouteiImport(record, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_KOUTEI_IMPORT, 'readwrite');
+      tx.objectStore(STORE_KOUTEI_IMPORT).put(record);
+      tx.oncomplete = function() { resolve(record); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] saveKouteiImport失敗:', e);
+    if (!_retry) { _dbPromise = null; return saveKouteiImport(record, true); }
+    return null;
+  }
+}
+
+async function getKouteiImport(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_KOUTEI_IMPORT, 'readonly');
+      var req = tx.objectStore(STORE_KOUTEI_IMPORT).get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getKouteiImport失敗:', e);
+    if (!_retry) { _dbPromise = null; return getKouteiImport(id, true); }
+    return null;
+  }
+}
+
+async function getAllKouteiImport(_retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_KOUTEI_IMPORT, 'readonly');
+      var req = tx.objectStore(STORE_KOUTEI_IMPORT).getAll();
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (b.importedAt || '').localeCompare(a.importedAt || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getAllKouteiImport失敗:', e);
+    if (!_retry) { _dbPromise = null; return getAllKouteiImport(true); }
+    return [];
+  }
+}
+
+async function deleteKouteiImport(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_KOUTEI_IMPORT, 'readwrite');
+      tx.objectStore(STORE_KOUTEI_IMPORT).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] deleteKouteiImport失敗:', e);
+    if (!_retry) { _dbPromise = null; return deleteKouteiImport(id, true); }
+  }
+}
+
+// ==========================================
 // グローバル公開
 // ==========================================
 window.getDB = getDB;
@@ -1344,4 +1424,10 @@ window.getTalkAnalysis = getTalkAnalysis;
 window.getAllTalkAnalysis = getAllTalkAnalysis;
 window.deleteTalkAnalysis = deleteTalkAnalysis;
 
-console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（トーク解析対応 v6）');
+// 工程表取込
+window.saveKouteiImport = saveKouteiImport;
+window.getKouteiImport = getKouteiImport;
+window.getAllKouteiImport = getAllKouteiImport;
+window.deleteKouteiImport = deleteKouteiImport;
+
+console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（工程取込対応 v7）');
