@@ -1,6 +1,7 @@
 // ==========================================
 // データ一元連携ロジック（全画面共通の同期関数）
-// 現場Pro 設備くん v0.54 - Phase5-3追加修正
+// 現場Pro 設備くん v0.55 - Phase5-3 v5.5修正
+// 複数日またぎバー連結描画対応
 // ==========================================
 
 // v5.4修正 - 工種カラーマップ（デフォルト）
@@ -187,6 +188,79 @@ function expandSchedulesToDayMap(schedules, monthStart, monthEnd) {
   return dayMap;
 }
 
+// v5.5追加 - 予定をスパン（期間）としてまとめる（ID重複排除）
+function buildEventSpans(schedules) {
+  var spans = [];
+  var seen = {};
+  for (var i = 0; i < schedules.length; i++) {
+    var sc = schedules[i];
+    if (!sc.id || seen[sc.id]) continue;
+    seen[sc.id] = true;
+    var startDate = sc.date || '';
+    var endDate = sc.endDate || sc.date || startDate;
+    if (!startDate) continue;
+    if (!endDate) endDate = startDate;
+    spans.push({ id: sc.id, schedule: sc, startDate: startDate, endDate: endDate, _row: 0, _drawDates: [] });
+  }
+  return spans;
+}
+
+// v5.5追加 - バーの段割り当て（重なり回避）
+function assignBarRows(spans, monthStart, monthEnd) {
+  // 開始日順にソート（同じ開始日なら期間が長い方が先）
+  spans.sort(function(a, b) {
+    if (a.startDate < b.startDate) return -1;
+    if (a.startDate > b.startDate) return 1;
+    if (a.endDate > b.endDate) return -1;
+    if (a.endDate < b.endDate) return 1;
+    return 0;
+  });
+  var dayRows = {};
+  for (var i = 0; i < spans.length; i++) {
+    var span = spans[i];
+    var cur = span.startDate < monthStart ? monthStart : span.startDate;
+    var last = span.endDate > monthEnd ? monthEnd : span.endDate;
+    var dates = [];
+    while (cur <= last) {
+      dates.push(cur);
+      if (!dayRows[cur]) dayRows[cur] = [];
+      var d = new Date(cur + 'T00:00:00');
+      d.setDate(d.getDate() + 1);
+      cur = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    if (dates.length === 0) continue;
+    // 空いている段を探す
+    var row = 0;
+    var found = false;
+    while (!found) {
+      var rowOk = true;
+      for (var j = 0; j < dates.length; j++) {
+        if (dayRows[dates[j]][row]) { rowOk = false; break; }
+      }
+      if (rowOk) found = true;
+      else row++;
+    }
+    span._row = row;
+    span._drawDates = dates;
+    for (var j = 0; j < dates.length; j++) {
+      while (dayRows[dates[j]].length <= row) dayRows[dates[j]].push(null);
+      dayRows[dates[j]][row] = span;
+    }
+  }
+  return dayRows;
+}
+
+// v5.5追加 - バー位置タイプ判定（start/middle/end/single）
+function getBarType(span, dateStr, monthStart, monthEnd) {
+  if (span.startDate === span.endDate) return 'single';
+  var visStart = span.startDate < monthStart ? monthStart : span.startDate;
+  var visEnd = span.endDate > monthEnd ? monthEnd : span.endDate;
+  if (visStart === visEnd) return 'single';
+  if (dateStr === visStart) return 'start';
+  if (dateStr === visEnd) return 'end';
+  return 'middle';
+}
+
 // 凡例用: 使用されている工種カラーを収集
 function collectUsedColors(schedules) {
   var used = {};
@@ -209,6 +283,9 @@ window.loadCustomCategories = loadCustomCategories;
 window.syncKouteiToSchedule = syncKouteiToSchedule;
 window.syncTalkToSchedule = syncTalkToSchedule;
 window.expandSchedulesToDayMap = expandSchedulesToDayMap;
+window.buildEventSpans = buildEventSpans;
+window.assignBarRows = assignBarRows;
+window.getBarType = getBarType;
 window.collectUsedColors = collectUsedColors;
 
-console.log('[schedule-sync.js] ✓ データ一元連携モジュール読み込み完了（v0.54）');
+console.log('[schedule-sync.js] ✓ データ一元連携モジュール読み込み完了（v0.55）');

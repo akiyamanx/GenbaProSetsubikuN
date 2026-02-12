@@ -1,7 +1,7 @@
 // ==========================================
 // マイスケジュール（my-schedule.js）
-// 現場Pro 設備くん v0.53 - Phase5-3
-// 個人スケジュール + 担当現場カレンダー
+// 現場Pro 設備くん v0.55 - Phase5-3 v5.5修正
+// 個人スケジュール + 担当現場カレンダー + 複数日またぎバー連結
 // ==========================================
 
 var _mySchYear = new Date().getFullYear();
@@ -79,7 +79,9 @@ async function renderMyCalendar(year, month) {
   var lastDay = new Date(year, month + 1, 0);
   var monthStart = ym + '-01';
   var monthEnd = ym + '-' + String(lastDay.getDate()).padStart(2, '0');
-  var dayMap = expandSchedulesToDayMap(mySchedules, monthStart, monthEnd);
+  // v5.5修正 - 予定をスパンとしてまとめ、段割り当て
+  var spans = buildEventSpans(mySchedules);
+  var dayRows = assignBarRows(spans, monthStart, monthEnd);
 
   var firstDay = new Date(year, month, 1);
   var startDow = firstDay.getDay();
@@ -95,8 +97,8 @@ async function renderMyCalendar(year, month) {
   }
   for (var day = 1; day <= totalDays; day++) {
     var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-    var entries = dayMap[dateStr] || [];
-    cellSlots.push({ type: 'day', day: day, dateStr: dateStr, entries: entries, count: entries.length });
+    var rows = dayRows[dateStr] || [];
+    cellSlots.push({ type: 'day', day: day, dateStr: dateStr, rows: rows, count: rows.length });
   }
   var endDow = (startDow + totalDays) % 7;
   if (endDow > 0) {
@@ -139,33 +141,49 @@ async function renderMyCalendar(year, month) {
     html += '<div class="' + cls + '" data-date="' + slot.dateStr + '" style="min-height:' + rh + 'px;" onclick="onMyDayClick(\'' + slot.dateStr + '\', this)">';
     html += '<div class="gantt-day-number" style="color:' + dowColors[dow] + ';">' + slot.day + '</div>';
 
-    // ガントバー描画（v5.8 - bars-area + texts-area 分離構造）
-    if (slot.entries.length > 0) {
-      var shown = Math.min(slot.entries.length, maxBars);
+    // v5.5修正 - スパンベースのバー描画（段揃え + テキストは先頭日のみ）
+    if (slot.rows.length > 0) {
+      var shown = Math.min(slot.rows.length, maxBars);
       html += '<div class="gantt-bars-area">';
       for (var bi = 0; bi < shown; bi++) {
-        var item = slot.entries[bi];
-        var sc = item.schedule;
+        var span = slot.rows[bi];
+        if (!span) {
+          html += '<div class="gantt-bar empty"></div>';
+          continue;
+        }
+        var sc = span.schedule;
         var color = sc.color || getKouteiColor(sc.category || guessCategory(sc.kouteiName || ''));
-        html += '<div class="gantt-bar ' + item.barType + '" style="background:' + color + ';"></div>';
+        var barType = getBarType(span, slot.dateStr, monthStart, monthEnd);
+        html += '<div class="gantt-bar ' + barType + '" style="background:' + color + ';"></div>';
       }
       html += '</div>';
+      // テキストは開始日（または月初=月またぎ）のみ表示
       var maxText = 3;
-      var textShown = Math.min(slot.entries.length, maxText);
-      html += '<div class="gantt-texts-area">';
-      for (var ti = 0; ti < textShown; ti++) {
-        var tItem = slot.entries[ti];
-        var tSc = tItem.schedule;
+      var textCount = 0;
+      var totalStarts = 0;
+      var textsHtml = '';
+      for (var ti = 0; ti < slot.rows.length; ti++) {
+        var tSpan = slot.rows[ti];
+        if (!tSpan) continue;
+        var isTextDay = (slot.dateStr === tSpan.startDate) ||
+                        (tSpan.startDate < monthStart && slot.dateStr === monthStart);
+        if (!isTextDay) continue;
+        totalStarts++;
+        if (textCount >= maxText) continue;
+        var tSc = tSpan.schedule;
         var tColor = tSc.color || getKouteiColor(tSc.category || guessCategory(tSc.kouteiName || ''));
         var tLabel = tSc.kouteiName || tSc.memo || tSc.genbaName || '';
         if (tLabel) {
-          html += '<div class="gantt-text-item"><span class="gantt-text-dot" style="background:' + tColor + ';"></span>' + escapeHtml(tLabel).substring(0, 8) + '</div>';
+          textsHtml += '<div class="gantt-text-item"><span class="gantt-text-dot" style="background:' + tColor + ';"></span>' + escapeHtml(tLabel).substring(0, 8) + '</div>';
+          textCount++;
         }
       }
-      if (slot.entries.length > maxText) {
-        html += '<div class="gantt-text-item" style="color:#9ca3af;">+' + (slot.entries.length - maxText) + '件</div>';
+      if (totalStarts > maxText) {
+        textsHtml += '<div class="gantt-text-item" style="color:#9ca3af;">+' + (totalStarts - maxText) + '件</div>';
       }
-      html += '</div>';
+      if (textsHtml) {
+        html += '<div class="gantt-texts-area">' + textsHtml + '</div>';
+      }
     }
     html += '</div>';
   }
@@ -397,4 +415,4 @@ window.confirmDeleteMySchedule = confirmDeleteMySchedule;
 window.selectMyScheduleColor = selectMyScheduleColor;
 window.onMyDayClick = onMyDayClick;
 
-console.log('[my-schedule.js] ✓ マイスケジュールモジュール読み込み完了（v0.59）');
+console.log('[my-schedule.js] ✓ マイスケジュールモジュール読み込み完了（v0.60）');

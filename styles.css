@@ -2196,10 +2196,11 @@
   font-weight: bold;
   padding: 8px 0;
 }
+/* v5.5修正 - 水平padding除去（バー連結のため） */
 .gantt-day {
   background: white;
   min-height: 50px;
-  padding: 4px;
+  padding: 4px 0;
   cursor: pointer;
   position: relative;
   transition: background 0.15s;
@@ -2227,10 +2228,12 @@
   background: #EDE7F6 !important;
   box-shadow: inset 0 0 0 2px #B39DDB;
 }
+/* v5.5修正 - 水平padding追加（gantt-dayから移動） */
 .gantt-day-number {
   font-size: 13px;
   font-weight: bold;
   margin-bottom: 2px;
+  padding: 0 4px;
 }
 /* v5.8修正 - bars-area + texts-area 完全分離レイアウト */
 .gantt-bars-area {
@@ -2239,31 +2242,40 @@
   gap: 2px;
   padding: 2px 0;
 }
+/* v5.5修正 - 複数日またぎバー連結CSS */
 .gantt-bar {
   height: 3px;
+  border-radius: 0;
+}
+.gantt-bar.single {
   border-radius: 2px;
-  width: 100%;
+  margin: 0 2px;
 }
 .gantt-bar.start {
   border-radius: 2px 0 0 2px;
-  margin-right: -4px;
+  margin-left: 2px;
+  margin-right: 0;
 }
 .gantt-bar.middle {
   border-radius: 0;
-  margin-left: -4px;
-  margin-right: -4px;
+  margin: 0;
 }
 .gantt-bar.end {
   border-radius: 0 2px 2px 0;
-  margin-left: -4px;
+  margin-left: 0;
+  margin-right: 2px;
+}
+.gantt-bar.empty {
+  visibility: hidden;
 }
 .gantt-bar-label {
   display: none !important;
 }
+/* v5.5修正 - 水平padding追加（gantt-dayから移動） */
 .gantt-texts-area {
   margin-top: 2px;
   border-top: 1px solid #eee;
-  padding-top: 1px;
+  padding: 1px 4px 0;
 }
 .gantt-text-item {
   font-size: 9px;
