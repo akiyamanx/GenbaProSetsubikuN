@@ -258,7 +258,7 @@ async function showMyDayDetail(dateStr) {
 
   var html = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">' +
     '<div style="font-size:18px; font-weight:bold; color:#1f2937;">' + dateLabel + '（' + dayOfWeek + '）</div>' +
-    '<button onclick="openMyScheduleForm(\'' + dateStr + '\')" style="padding:10px 20px; font-size:14px; font-weight:bold; background:linear-gradient(135deg, #7c3aed, #5b21b6); color:white; border:none; border-radius:10px; cursor:pointer;">＋ 追加</button></div>';
+    '</div>';
 
   if (entries.length === 0) {
     html += '<div style="background:white; border-radius:12px; padding:30px; text-align:center; color:#9ca3af; font-size:14px;">予定はありません</div>';
@@ -397,4 +397,4 @@ window.confirmDeleteMySchedule = confirmDeleteMySchedule;
 window.selectMyScheduleColor = selectMyScheduleColor;
 window.onMyDayClick = onMyDayClick;
 
-console.log('[my-schedule.js] ✓ マイスケジュールモジュール読み込み完了（v0.58）');
+console.log('[my-schedule.js] ✓ マイスケジュールモジュール読み込み完了（v0.59）');
