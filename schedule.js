@@ -8,6 +8,7 @@ var _scheduleYear = new Date().getFullYear();
 var _scheduleMonth = new Date().getMonth();
 var _scheduleSelectedDate = '';
 var _scheduleGenbaFilter = ''; // 現場フィルター
+var _scheduleDayRows = {}; // カレンダーのバー段割り当てを保持（詳細カードの番号一致用）
 
 // ==========================================
 // 初期化
@@ -95,6 +96,7 @@ async function renderCalendar(year, month) {
   // v5.5修正 - 予定をスパンとしてまとめ、段割り当て
   var spans = buildEventSpans(schedules);
   var dayRows = assignBarRows(spans, monthStart, monthEnd);
+  _scheduleDayRows = dayRows; // 詳細カードの番号一致用に保持
 
   // カレンダー計算
   var firstDay = new Date(year, month, 1);
@@ -313,6 +315,13 @@ async function showDayDetail(dateStr) {
     '<div style="font-size:18px; font-weight:bold; color:#1f2937;">' + dateLabel + '（' + dayOfWeek + '）</div>' +
     '</div>';
 
+  // バー段割り当てからID→行番号マップを作成
+  var rows = _scheduleDayRows[dateStr] || [];
+  var idToRowIdx = {};
+  for (var ri = 0; ri < rows.length; ri++) {
+    if (rows[ri] && rows[ri].id) idToRowIdx[rows[ri].id] = ri + 1;
+  }
+
   if (entries.length === 0) {
     html += '<div style="background:white; border-radius:12px; padding:30px; text-align:center; color:#9ca3af; font-size:14px;">予定はありません</div>';
   } else {
@@ -324,14 +333,16 @@ async function showDayDetail(dateStr) {
       else if (s.source === 'talk_analysis' || s.source === 'talk-ai') srcLabel = 'トーク解析より';
       var period = s.date || '';
       if (s.endDate && s.endDate !== s.date) period += ' 〜 ' + s.endDate;
+      var barNum = idToRowIdx[s.id] || (k + 1);
+      var numLabel = '<span style="color:' + color + '; font-weight:bold; font-size:18px; margin-right:4px;">' + getCircleNum(barNum) + '</span>';
 
       html += '<div style="background:white; border-radius:12px; padding:14px; margin-bottom:8px; border-left:4px solid ' + color + '; box-shadow:0 1px 4px rgba(0,0,0,0.06);">';
-      if (s.kouteiName) html += '<div style="font-size:15px; font-weight:bold; color:#1f2937;">📋 ' + escapeHtml(s.kouteiName) + '</div>';
+      html += '<div style="font-size:15px; font-weight:bold; color:#1f2937;">' + numLabel + escapeHtml(s.kouteiName || s.memo || '予定') + '</div>';
       if (s.genbaName) html += '<div style="font-size:13px; color:#6b7280; margin-top:2px;">🏗️ ' + escapeHtml(s.genbaName) + '</div>';
       if (s.shokuninName) html += '<div style="font-size:13px; color:#1e40af; margin-top:2px;">👷 ' + escapeHtml(s.shokuninName) + '</div>';
       if (period) html += '<div style="font-size:12px; color:#2196F3; margin-top:2px;">📅 ' + escapeHtml(period) + '</div>';
       if (srcLabel) html += '<div style="font-size:11px; color:#9ca3af; margin-top:2px;">' + srcLabel + '</div>';
-      if (s.memo) html += '<div style="font-size:12px; color:#9ca3af; margin-top:4px;">' + escapeHtml(s.memo) + '</div>';
+      if (s.memo && s.kouteiName) html += '<div style="font-size:12px; color:#9ca3af; margin-top:4px;">' + escapeHtml(s.memo) + '</div>';
       html += '<div style="display:flex; gap:8px; margin-top:8px;">' +
         '<button onclick="openScheduleForm(\'' + dateStr + '\', \'' + s.id + '\')" style="flex:1; padding:8px; font-size:13px; font-weight:bold; background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe; border-radius:8px; cursor:pointer;">編集</button>' +
         '<button onclick="confirmDeleteSchedule(\'' + s.id + '\')" style="padding:8px 12px; font-size:13px; background:#fef2f2; color:#ef4444; border:1px solid #fecaca; border-radius:8px; cursor:pointer;">削除</button></div>';
