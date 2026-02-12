@@ -274,6 +274,13 @@ function collectUsedColors(schedules) {
   return used;
 }
 
+// v5.6追加 - 丸数字ヘルパー（バーとテキストの番号表示用）
+var CIRCLE_NUMS = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+function getCircleNum(n) {
+  if (n >= 1 && n <= 10) return CIRCLE_NUMS[n - 1];
+  return '(' + n + ')';
+}
+
 // グローバル公開
 window.KOUTEI_COLORS = KOUTEI_COLORS;
 window.PRESET_COLORS = PRESET_COLORS;
@@ -287,5 +294,6 @@ window.buildEventSpans = buildEventSpans;
 window.assignBarRows = assignBarRows;
 window.getBarType = getBarType;
 window.collectUsedColors = collectUsedColors;
+window.getCircleNum = getCircleNum;
 
-console.log('[schedule-sync.js] ✓ データ一元連携モジュール読み込み完了（v0.55）');
+console.log('[schedule-sync.js] ✓ データ一元連携モジュール読み込み完了（v0.56）');

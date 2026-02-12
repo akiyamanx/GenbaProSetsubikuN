@@ -2246,6 +2246,18 @@
 .gantt-bar {
   height: 3px;
   border-radius: 0;
+  position: relative;
+}
+.gantt-bar-num {
+  font-size: 8px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0,0,0,0.5);
+  position: absolute;
+  left: 3px;
+  top: -9px;
+  line-height: 1;
+  pointer-events: none;
 }
 .gantt-bar.single {
   border-radius: 2px;

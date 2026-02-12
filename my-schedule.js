@@ -154,7 +154,8 @@ async function renderMyCalendar(year, month) {
         var sc = span.schedule;
         var color = sc.color || getKouteiColor(sc.category || guessCategory(sc.kouteiName || ''));
         var barType = getBarType(span, slot.dateStr, monthStart, monthEnd);
-        html += '<div class="gantt-bar ' + barType + '" style="background:' + color + ';"></div>';
+        var numHtml = (barType === 'start' || barType === 'single') ? '<span class="gantt-bar-num">' + getCircleNum(bi + 1) + '</span>' : '';
+        html += '<div class="gantt-bar ' + barType + '" style="background:' + color + ';">' + numHtml + '</div>';
       }
       html += '</div>';
       // テキストは開始日（または月初=月またぎ）のみ表示
@@ -174,7 +175,7 @@ async function renderMyCalendar(year, month) {
         var tColor = tSc.color || getKouteiColor(tSc.category || guessCategory(tSc.kouteiName || ''));
         var tLabel = tSc.kouteiName || tSc.memo || tSc.genbaName || '';
         if (tLabel) {
-          textsHtml += '<div class="gantt-text-item"><span class="gantt-text-dot" style="background:' + tColor + ';"></span>' + escapeHtml(tLabel).substring(0, 8) + '</div>';
+          textsHtml += '<div class="gantt-text-item"><span style="color:' + tColor + '; font-weight:bold;">' + getCircleNum(ti + 1) + '</span>' + escapeHtml(tLabel).substring(0, 8) + '</div>';
           textCount++;
         }
       }
