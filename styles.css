@@ -2225,6 +2225,7 @@
 /* v5.4追加 - 選択した日のハイライト */
 .gantt-day.selected {
   background: #EDE7F6 !important;
+  box-shadow: inset 0 0 0 2px #B39DDB;
 }
 .gantt-day-number {
   font-size: 13px;
