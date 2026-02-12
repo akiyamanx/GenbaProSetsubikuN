@@ -295,7 +295,7 @@ async function showDayDetail(dateStr) {
 
   var html = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">' +
     '<div style="font-size:18px; font-weight:bold; color:#1f2937;">' + dateLabel + '（' + dayOfWeek + '）</div>' +
-    '<button onclick="openScheduleForm(\'' + dateStr + '\')" style="padding:10px 20px; font-size:14px; font-weight:bold; background:linear-gradient(135deg, #7c3aed, #5b21b6); color:white; border:none; border-radius:10px; cursor:pointer;">＋ 追加</button></div>';
+    '</div>';
 
   if (entries.length === 0) {
     html += '<div style="background:white; border-radius:12px; padding:30px; text-align:center; color:#9ca3af; font-size:14px;">予定はありません</div>';
@@ -537,6 +537,52 @@ async function saveCustomCategoryForm() {
   }
 }
 
+// ==========================================
+// 簡易現場登録モーダル
+// ==========================================
+function openQuickGenbaModal() {
+  var modal = document.getElementById('quick-genba-modal');
+  if (!modal) return;
+  document.getElementById('quick-genba-name').value = '';
+  document.getElementById('quick-genba-address').value = '';
+  document.getElementById('quick-genba-client').value = '';
+  modal.style.display = 'block';
+}
+
+function closeQuickGenbaModal() {
+  var modal = document.getElementById('quick-genba-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function saveQuickGenba() {
+  var name = document.getElementById('quick-genba-name').value.trim();
+  if (!name) { alert('現場名を入力してください'); return; }
+  var address = document.getElementById('quick-genba-address').value.trim();
+  var client = document.getElementById('quick-genba-client').value.trim();
+  try {
+    var genba = { name: name, address: address, clientName: client, status: 'active' };
+    var result = await saveGenba(genba);
+    if (!result) { alert('保存に失敗しました'); return; }
+    // ドロップダウンに追加して選択状態にする
+    var genbaSelect = document.getElementById('schedule-genba');
+    if (genbaSelect) {
+      var opt = document.createElement('option');
+      opt.value = result.id;
+      opt.textContent = name;
+      genbaSelect.appendChild(opt);
+      genbaSelect.value = result.id;
+      // 工程セレクトもリセット
+      onScheduleGenbaChange();
+    }
+    // フィルタードロップダウンも更新
+    await loadScheduleGenbaFilter();
+    closeQuickGenbaModal();
+  } catch (e) {
+    console.error('[schedule] saveQuickGenba失敗:', e);
+    alert('保存に失敗しました: ' + e.message);
+  }
+}
+
 // グローバル公開
 window.initScheduleScreen = initScheduleScreen;
 window.renderCalendar = renderCalendar;
@@ -556,5 +602,8 @@ window.openCustomCategoryModal = openCustomCategoryModal;
 window.closeCustomCategoryModal = closeCustomCategoryModal;
 window.selectPresetColor = selectPresetColor;
 window.saveCustomCategoryForm = saveCustomCategoryForm;
+window.openQuickGenbaModal = openQuickGenbaModal;
+window.closeQuickGenbaModal = closeQuickGenbaModal;
+window.saveQuickGenba = saveQuickGenba;
 
-console.log('[schedule.js] ✓ ガントチャートスケジュールモジュール読み込み完了（v0.58）');
+console.log('[schedule.js] ✓ ガントチャートスケジュールモジュール読み込み完了（v0.59）');
