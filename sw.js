@@ -4,7 +4,7 @@
 // ★ v3.0.0: CULOchanKAIKEIproからフォーク、現場管理機能追加
 // ==========================================
 
-const CACHE_NAME = 'genba-pro-v5.16.0';
+const CACHE_NAME = 'genba-pro-v5.17.0';
 const OFFLINE_URL = 'index.html';
 
 // キャッシュするファイル（相対パス）
