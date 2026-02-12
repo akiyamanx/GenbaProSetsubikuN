@@ -2231,14 +2231,17 @@
   font-weight: bold;
   margin-bottom: 2px;
 }
-/* v5.4修正 - ガントバーを3pxに細く */
+/* v5.8修正 - bars-area + texts-area 完全分離レイアウト */
+.gantt-bars-area {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0;
+}
 .gantt-bar {
   height: 3px;
   border-radius: 2px;
-  margin: 2px 0;
-  position: relative;
-  overflow: visible;
-  cursor: pointer;
+  width: 100%;
 }
 .gantt-bar.start {
   border-radius: 2px 0 0 2px;
@@ -2254,23 +2257,31 @@
   margin-left: -4px;
 }
 .gantt-bar-label {
-  font-size: 10px;
+  display: none !important;
+}
+.gantt-texts-area {
+  margin-top: 2px;
+  border-top: 1px solid #eee;
+  padding-top: 1px;
+}
+.gantt-text-item {
+  font-size: 9px;
   font-weight: 700;
+  color: #333;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 12px;
-  position: absolute;
-  top: -12px;
-  left: 2px;
-  color: #333;
-  text-shadow: 0 0 2px rgba(255,255,255,0.8);
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
-.gantt-count-badge {
-  font-size: 9px;
-  color: #9ca3af;
-  text-align: center;
-  display: block;
+.gantt-text-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
 }
 .gantt-legend {
   display: flex;

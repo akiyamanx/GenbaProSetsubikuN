@@ -45,12 +45,15 @@ async function loadMyGenbaList() {
 // v5.4修正 - 行高さ自動拡張 + タップハイライト
 // ==========================================
 
-// v5.4追加 - 行高さ計算（schedule.jsと同じロジック）
+// v5.8修正 - bars-area + texts-area 分離構造で動的計算
 function calcMyRowHeight(maxEvents) {
-  var baseHeight = 50;
-  var perEventHeight = 20;
-  if (maxEvents <= 1) return baseHeight;
-  return baseHeight + (maxEvents - 1) * perEventHeight;
+  var dateAreaHeight = 18;
+  var numLines = Math.min(maxEvents, 3);
+  var barsAreaHeight = numLines > 0 ? numLines * 5 + 4 : 0;
+  var numTexts = Math.min(maxEvents, 3);
+  var textsAreaHeight = numTexts > 0 ? numTexts * 13 + 4 : 0;
+  if (maxEvents > 3) textsAreaHeight += 13;
+  return Math.max(dateAreaHeight + barsAreaHeight + textsAreaHeight, 38);
 }
 
 async function renderMyCalendar(year, month) {
@@ -93,7 +96,7 @@ async function renderMyCalendar(year, month) {
   for (var day = 1; day <= totalDays; day++) {
     var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
     var entries = dayMap[dateStr] || [];
-    cellSlots.push({ type: 'day', day: day, dateStr: dateStr, entries: entries, count: Math.min(entries.length, maxBars) });
+    cellSlots.push({ type: 'day', day: day, dateStr: dateStr, entries: entries, count: entries.length });
   }
   var endDow = (startDow + totalDays) % 7;
   if (endDow > 0) {
@@ -136,21 +139,33 @@ async function renderMyCalendar(year, month) {
     html += '<div class="' + cls + '" data-date="' + slot.dateStr + '" style="min-height:' + rh + 'px;" onclick="onMyDayClick(\'' + slot.dateStr + '\', this)">';
     html += '<div class="gantt-day-number" style="color:' + dowColors[dow] + ';">' + slot.day + '</div>';
 
-    var shown = Math.min(slot.entries.length, maxBars);
-    for (var bi = 0; bi < shown; bi++) {
-      var item = slot.entries[bi];
-      var sc = item.schedule;
-      var color = sc.color || getKouteiColor(sc.category || guessCategory(sc.kouteiName || ''));
-      var label = '';
-      if (item.barType === 'start' || item.barType === 'single') {
-        label = sc.kouteiName || sc.memo || sc.genbaName || '';
+    // ガントバー描画（v5.8 - bars-area + texts-area 分離構造）
+    if (slot.entries.length > 0) {
+      var shown = Math.min(slot.entries.length, maxBars);
+      html += '<div class="gantt-bars-area">';
+      for (var bi = 0; bi < shown; bi++) {
+        var item = slot.entries[bi];
+        var sc = item.schedule;
+        var color = sc.color || getKouteiColor(sc.category || guessCategory(sc.kouteiName || ''));
+        html += '<div class="gantt-bar ' + item.barType + '" style="background:' + color + ';"></div>';
       }
-      html += '<div class="gantt-bar ' + item.barType + '" style="background:' + color + ';">';
-      if (label) html += '<span class="gantt-bar-label" style="color:' + color + ';">' + escapeHtml(label).substring(0, 5) + '</span>';
       html += '</div>';
-    }
-    if (slot.entries.length > maxBars) {
-      html += '<span class="gantt-count-badge">+' + (slot.entries.length - maxBars) + '</span>';
+      var maxText = 3;
+      var textShown = Math.min(slot.entries.length, maxText);
+      html += '<div class="gantt-texts-area">';
+      for (var ti = 0; ti < textShown; ti++) {
+        var tItem = slot.entries[ti];
+        var tSc = tItem.schedule;
+        var tColor = tSc.color || getKouteiColor(tSc.category || guessCategory(tSc.kouteiName || ''));
+        var tLabel = tSc.kouteiName || tSc.memo || tSc.genbaName || '';
+        if (tLabel) {
+          html += '<div class="gantt-text-item"><span class="gantt-text-dot" style="background:' + tColor + ';"></span>' + escapeHtml(tLabel).substring(0, 8) + '</div>';
+        }
+      }
+      if (slot.entries.length > maxText) {
+        html += '<div class="gantt-text-item" style="color:#9ca3af;">+' + (slot.entries.length - maxText) + '件</div>';
+      }
+      html += '</div>';
     }
     html += '</div>';
   }
@@ -382,4 +397,4 @@ window.confirmDeleteMySchedule = confirmDeleteMySchedule;
 window.selectMyScheduleColor = selectMyScheduleColor;
 window.onMyDayClick = onMyDayClick;
 
-console.log('[my-schedule.js] ✓ マイスケジュールモジュール読み込み完了（v0.55）');
+console.log('[my-schedule.js] ✓ マイスケジュールモジュール読み込み完了（v0.58）');
