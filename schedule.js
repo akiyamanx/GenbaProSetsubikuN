@@ -321,6 +321,10 @@ async function showDayDetail(dateStr) {
   for (var ri = 0; ri < rows.length; ri++) {
     if (rows[ri] && rows[ri].id) idToRowIdx[rows[ri].id] = ri + 1;
   }
+  // バーの段順でソート（カレンダーの①②③④と同じ並び順にする）
+  entries.sort(function(a, b) {
+    return (idToRowIdx[a.id] || 9999) - (idToRowIdx[b.id] || 9999);
+  });
 
   if (entries.length === 0) {
     html += '<div style="background:white; border-radius:12px; padding:30px; text-align:center; color:#9ca3af; font-size:14px;">予定はありません</div>';
