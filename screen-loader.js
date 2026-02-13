@@ -24,6 +24,7 @@ const SCREEN_FILES = [
   'talk-analysis',
   'koutei-import',
   'my-schedule',
+  'photo-manager',
   'pricesearch',
   'help',
   'tax',

@@ -19,7 +19,7 @@
 // ==========================================
 
 const IDB_NAME = 'reform_app_idb';
-const IDB_VERSION = 9;
+const IDB_VERSION = 10;
 const STORE_IMAGES = 'images';
 const STORE_GENBA = 'genba';
 const STORE_KOUTEI = 'koutei';
@@ -31,6 +31,7 @@ const STORE_MADORI = 'madori';
 const STORE_TALK_ANALYSIS = 'talkAnalysis';
 const STORE_KOUTEI_IMPORT = 'kouteiImport';
 const STORE_CUSTOM_CATEGORY = 'customCategory'; // v9追加
+const STORE_PHOTO_MANAGER = 'photoStore'; // v10追加: Phase6写真管理
 
 // DB接続（シングルトン）
 let _dbPromise = null;
@@ -115,6 +116,14 @@ function getDB() {
       if (!db.objectStoreNames.contains(STORE_CUSTOM_CATEGORY)) {
         var ccStore = db.createObjectStore(STORE_CUSTOM_CATEGORY, { keyPath: 'id', autoIncrement: true });
         ccStore.createIndex('name', 'name', { unique: true });
+      }
+      // v10: Phase6写真管理ストア
+      if (!db.objectStoreNames.contains(STORE_PHOTO_MANAGER)) {
+        var pmStore = db.createObjectStore(STORE_PHOTO_MANAGER, { keyPath: 'id', autoIncrement: true });
+        pmStore.createIndex('genbaId', 'genbaId', { unique: false });
+        pmStore.createIndex('category', 'category', { unique: false });
+        pmStore.createIndex('takenDate', 'takenDate', { unique: false });
+        pmStore.createIndex('genbaId_category', ['genbaId', 'category'], { unique: false });
       }
     };
 
@@ -1532,4 +1541,83 @@ window.saveCustomCategory = saveCustomCategory;
 window.getAllCustomCategory = getAllCustomCategory;
 window.deleteCustomCategory = deleteCustomCategory;
 
-console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（v9 カスタム工種対応）');
+// ==========================================
+// v10追加: Phase6写真管理（photoStore）CRUD
+// ==========================================
+
+async function savePhotoManager(record, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_PHOTO_MANAGER, 'readwrite');
+      tx.objectStore(STORE_PHOTO_MANAGER).put(record);
+      tx.oncomplete = function() { resolve(record); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] savePhotoManager失敗:', e);
+    if (!_retry) { _dbPromise = null; return savePhotoManager(record, true); }
+    return null;
+  }
+}
+
+async function getPhotoManager(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_PHOTO_MANAGER, 'readonly');
+      var req = tx.objectStore(STORE_PHOTO_MANAGER).get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getPhotoManager失敗:', e);
+    if (!_retry) { _dbPromise = null; return getPhotoManager(id, true); }
+    return null;
+  }
+}
+
+async function getAllPhotoManager(_retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_PHOTO_MANAGER, 'readonly');
+      var req = tx.objectStore(STORE_PHOTO_MANAGER).getAll();
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (b.takenDate || '').localeCompare(a.takenDate || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getAllPhotoManager失敗:', e);
+    if (!_retry) { _dbPromise = null; return getAllPhotoManager(true); }
+    return [];
+  }
+}
+
+async function deletePhotoManager(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_PHOTO_MANAGER, 'readwrite');
+      tx.objectStore(STORE_PHOTO_MANAGER).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] deletePhotoManager失敗:', e);
+    if (!_retry) { _dbPromise = null; return deletePhotoManager(id, true); }
+  }
+}
+
+// Phase6写真管理
+window.savePhotoManager = savePhotoManager;
+window.getPhotoManager = getPhotoManager;
+window.getAllPhotoManager = getAllPhotoManager;
+window.deletePhotoManager = deletePhotoManager;
+
+console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（v10 Phase6写真管理対応）');

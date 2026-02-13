@@ -1,0 +1,135 @@
+<!-- ========== Phase6: 写真管理メイン画面 ========== -->
+<div id="photo-manager-screen" class="screen">
+  <!-- ヘッダー -->
+  <div class="pm-header">
+    <button class="pm-back-btn" onclick="showScreen('home')">←</button>
+    <h2>写真管理</h2>
+    <button class="pm-add-btn" id="pmAddBtn">+ 撮影</button>
+  </div>
+
+  <!-- 現場フィルター -->
+  <div class="pm-filter-bar">
+    <select id="pmGenbaFilter">
+      <option value="all">全現場</option>
+    </select>
+  </div>
+
+  <!-- カテゴリタブ -->
+  <div class="pm-category-tabs">
+    <button class="pm-tab active" data-category="all">全部</button>
+    <button class="pm-tab" data-category="before">施工前</button>
+    <button class="pm-tab" data-category="during">施工中</button>
+    <button class="pm-tab" data-category="after">施工後</button>
+  </div>
+
+  <!-- 写真グリッド -->
+  <div class="pm-grid-container" id="pmGridContainer">
+    <div class="pm-empty-state" id="pmEmptyState">
+      <p class="pm-empty-icon">📷</p>
+      <p>まだ写真がありません</p>
+      <p class="pm-empty-sub">「+ 撮影」ボタンから写真を登録しましょう</p>
+    </div>
+  </div>
+
+  <!-- ステータスバー -->
+  <div class="pm-status-bar" id="pmStatusBar">
+    写真: 0枚
+  </div>
+
+  <!-- === 写真登録モーダル === -->
+  <div class="pm-modal-overlay" id="pmRegisterModal" style="display:none;">
+    <div class="pm-modal">
+      <div class="pm-modal-header">
+        <h3>写真を登録</h3>
+        <button class="pm-modal-close" id="pmRegCloseBtn">×</button>
+      </div>
+      <div class="pm-modal-body">
+        <!-- 入力元選択 -->
+        <div class="pm-input-source">
+          <button class="pm-source-btn" id="pmCameraBtn">📷 カメラで撮影</button>
+          <button class="pm-source-btn" id="pmGalleryBtn">🖼 ギャラリーから</button>
+        </div>
+        <input type="file" id="pmCameraInput" accept="image/*" capture="environment" style="display:none;">
+        <input type="file" id="pmGalleryInput" accept="image/*" multiple style="display:none;">
+
+        <!-- プレビュー -->
+        <div class="pm-preview-area" id="pmPreviewArea" style="display:none;">
+          <img id="pmPreviewImg" alt="プレビュー">
+        </div>
+
+        <!-- 登録フォーム -->
+        <div class="pm-register-form" id="pmRegisterForm" style="display:none;">
+          <label>現場（必須）</label>
+          <select id="pmRegGenba" required>
+            <option value="">選択してください</option>
+          </select>
+
+          <label>撮影区分（必須）</label>
+          <div class="pm-radio-group">
+            <label><input type="radio" name="pmCategory" value="before" checked> 施工前</label>
+            <label><input type="radio" name="pmCategory" value="during"> 施工中</label>
+            <label><input type="radio" name="pmCategory" value="after"> 施工後</label>
+          </div>
+
+          <label>工種（任意）</label>
+          <select id="pmRegKouji">
+            <option value="">なし</option>
+          </select>
+
+          <label>メモ（任意）</label>
+          <input type="text" id="pmRegMemo" placeholder="例: PS内 既設配管撮影">
+
+          <label class="pm-bb-check-label">
+            <input type="checkbox" id="pmBlackboardCheck"> 簡易黒板を付ける
+          </label>
+
+          <!-- 黒板入力フォーム -->
+          <div id="pmBlackboardForm" style="display:none;">
+            <div class="pm-bb-form">
+              <div class="pm-bb-title">📋 黒板内容</div>
+              <label>工事名</label>
+              <input type="text" id="pmBbKojiName" placeholder="例: 給排水設備改修工事">
+              <label>場所</label>
+              <input type="text" id="pmBbLocation" placeholder="例: 3F PS内">
+              <label>区分</label>
+              <input type="text" id="pmBbCategory" readonly>
+              <label>施工者</label>
+              <input type="text" id="pmBbContractor" placeholder="例: マーフィード">
+              <label>日付</label>
+              <input type="date" id="pmBbDate">
+            </div>
+          </div>
+        </div>
+
+        <!-- 登録ボタン -->
+        <div class="pm-modal-actions" id="pmModalActions" style="display:none;">
+          <button class="pm-register-btn" id="pmRegisterBtn">登録する</button>
+          <button class="pm-cancel-btn" id="pmRegCancelBtn">キャンセル</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- === 写真詳細モーダル === -->
+  <div class="pm-modal-overlay" id="pmDetailModal" style="display:none;">
+    <div class="pm-detail-modal">
+      <div class="pm-detail-header">
+        <button class="pm-detail-back" id="pmDetailBackBtn">← 戻る</button>
+        <button class="pm-detail-delete" id="pmDeleteBtn">🗑 削除</button>
+      </div>
+      <div class="pm-detail-img-area">
+        <img id="pmDetailImg" alt="写真詳細">
+      </div>
+      <div class="pm-detail-info">
+        <p>📍 <span id="pmDetailGenba"></span></p>
+        <p>📋 <span id="pmDetailCategory"></span> ・ <span id="pmDetailKouji"></span></p>
+        <p>📝 <span id="pmDetailMemo"></span></p>
+        <p>📅 <span id="pmDetailDate"></span></p>
+      </div>
+      <div class="pm-detail-actions">
+        <button class="pm-share-btn" id="pmShareBtn">📤 共有/保存</button>
+        <button class="pm-edit-memo-btn" id="pmEditMemoBtn">✏️ メモ編集</button>
+      </div>
+    </div>
+  </div>
+</div>

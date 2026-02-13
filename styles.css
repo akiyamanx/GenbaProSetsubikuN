@@ -2391,3 +2391,400 @@
   color: #6b7280;
   font-family: monospace;
 }
+
+/* ============================================ */
+/* Phase6: 写真管理 v0.97追加                     */
+/* ============================================ */
+
+/* ヘッダー */
+.pm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #1a237e;
+  color: white;
+}
+.pm-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.pm-back-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.pm-add-btn {
+  background: #ff6d00;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* 現場フィルター */
+.pm-filter-bar {
+  padding: 8px 16px;
+  background: #e8eaf6;
+}
+.pm-filter-bar select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #9fa8da;
+  font-size: 14px;
+}
+
+/* カテゴリタブ */
+.pm-category-tabs {
+  display: flex;
+  padding: 8px 16px;
+  gap: 8px;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+}
+.pm-tab {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #9fa8da;
+  border-radius: 20px;
+  background: white;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+}
+.pm-tab.active {
+  background: #3949ab;
+  color: white;
+  border-color: #3949ab;
+}
+
+/* 写真グリッド */
+.pm-grid-container {
+  padding: 8px;
+  overflow-y: auto;
+  min-height: 200px;
+}
+.pm-date-separator {
+  font-size: 13px;
+  font-weight: bold;
+  color: #555;
+  padding: 8px 8px 4px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 8px;
+}
+.pm-thumbnail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-bottom: 16px;
+}
+.pm-thumbnail {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #eee;
+}
+.pm-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pm-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+}
+.pm-badge-before { background: #2196f3; }
+.pm-badge-during { background: #ff9800; }
+.pm-badge-after  { background: #4caf50; }
+.pm-badge-other  { background: #9e9e9e; }
+.pm-bb-icon {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  font-size: 16px;
+}
+
+/* 空状態 */
+.pm-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #888;
+}
+.pm-empty-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+.pm-empty-sub {
+  font-size: 13px;
+  color: #aaa;
+}
+
+/* ステータスバー */
+.pm-status-bar {
+  padding: 8px 16px;
+  background: #f5f5f5;
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* === モーダル共通 === */
+.pm-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.pm-modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.pm-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+.pm-modal-header h3 { margin: 0; }
+.pm-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+}
+.pm-modal-body {
+  padding: 16px;
+}
+
+/* 入力元ボタン */
+.pm-input-source {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.pm-source-btn {
+  flex: 1;
+  padding: 12px;
+  border: 2px dashed #9fa8da;
+  border-radius: 8px;
+  background: #f5f5ff;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: center;
+}
+.pm-source-btn:active {
+  background: #e8eaf6;
+}
+
+/* プレビュー */
+.pm-preview-area {
+  margin-bottom: 16px;
+  text-align: center;
+}
+.pm-preview-area img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+}
+
+/* 登録フォーム */
+.pm-register-form label {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  margin: 12px 0 4px;
+  color: #333;
+}
+.pm-register-form select,
+.pm-register-form input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.pm-radio-group {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0;
+}
+.pm-radio-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: normal;
+  margin: 0;
+}
+.pm-bb-check-label {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px !important;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* 黒板フォーム */
+.pm-bb-form {
+  background: #f1f8e9;
+  border: 1px solid #c5e1a5;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+}
+.pm-bb-title {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: #33691e;
+}
+.pm-bb-form label {
+  display: block;
+  font-size: 12px;
+  font-weight: bold;
+  margin: 8px 0 2px;
+  color: #555;
+}
+.pm-bb-form input[type="text"],
+.pm-bb-form input[type="date"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #c5e1a5;
+  border-radius: 4px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+/* モーダルアクション */
+.pm-modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.pm-register-btn {
+  flex: 2;
+  padding: 12px;
+  background: #3949ab;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.pm-register-btn:disabled {
+  background: #9fa8da;
+  cursor: not-allowed;
+}
+.pm-cancel-btn {
+  flex: 1;
+  padding: 12px;
+  background: #e0e0e0;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* === 詳細モーダル === */
+.pm-detail-modal {
+  background: white;
+  border-radius: 12px;
+  width: 95%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.pm-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+.pm-detail-back {
+  background: none;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  color: #3949ab;
+  font-weight: bold;
+}
+.pm-detail-delete {
+  background: none;
+  border: 1px solid #ef5350;
+  color: #ef5350;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pm-detail-img-area {
+  text-align: center;
+  background: #000;
+  min-height: 200px;
+}
+.pm-detail-img-area img {
+  max-width: 100%;
+  max-height: 50vh;
+  object-fit: contain;
+}
+.pm-detail-info {
+  padding: 16px;
+}
+.pm-detail-info p {
+  font-size: 14px;
+  color: #333;
+  margin: 6px 0;
+}
+.pm-detail-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+.pm-share-btn {
+  flex: 1;
+  padding: 10px;
+  background: #3949ab;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.pm-edit-memo-btn {
+  flex: 1;
+  padding: 10px;
+  background: #e8eaf6;
+  color: #3949ab;
+  border: 1px solid #9fa8da;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}

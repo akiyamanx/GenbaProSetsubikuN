@@ -107,6 +107,10 @@ async function showScreen(screenId) {
   if (screenId === 'my-schedule') {
     if (typeof initMySchedule === 'function') initMySchedule();
   }
+  // v0.97追加: Phase6写真管理画面の初期化
+  if (screenId === 'photo-manager') {
+    if (typeof initPhotoManager === 'function') initPhotoManager();
+  }
   if (screenId === 'tax') {
     if (typeof selectTaxType === 'function') {
       const savedTaxType = localStorage.getItem('reform_app_tax_type') || 'blue';

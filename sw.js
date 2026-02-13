@@ -4,7 +4,7 @@
 // ★ v3.0.0: CULOchanKAIKEIproからフォーク、現場管理機能追加
 // ==========================================
 
-const CACHE_NAME = 'genba-pro-v5.23.0';
+const CACHE_NAME = 'genba-pro-v5.24.0';
 const OFFLINE_URL = 'index.html';
 
 // キャッシュするファイル（相対パス）
@@ -55,6 +55,8 @@ const FILES_TO_CACHE = [
   'madori-tools.js',
   'madori-ui.js',
   'madori-data.js',
+  'photo-blackboard.js',
+  'photo-manager.js',
   // ★ 画面HTMLファイル（ルート直下）
   'home.html',
   'genba.html',
@@ -66,6 +68,7 @@ const FILES_TO_CACHE = [
   'talk-analysis.html',
   'koutei-import.html',
   'my-schedule.html',
+  'photo-manager.html',
   'madori.html',
   'pricesearch.html',
   'help.html',
