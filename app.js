@@ -111,6 +111,10 @@ async function showScreen(screenId) {
   if (screenId === 'photo-manager') {
     if (typeof initPhotoManager === 'function') initPhotoManager();
   }
+  // v11追加: Phase7日報・報告書画面の初期化
+  if (screenId === 'daily-report') {
+    if (typeof initDailyReport === 'function') initDailyReport();
+  }
   if (screenId === 'tax') {
     if (typeof selectTaxType === 'function') {
       const savedTaxType = localStorage.getItem('reform_app_tax_type') || 'blue';

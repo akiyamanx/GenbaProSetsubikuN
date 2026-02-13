@@ -19,7 +19,7 @@
 // ==========================================
 
 const IDB_NAME = 'reform_app_idb';
-const IDB_VERSION = 10;
+const IDB_VERSION = 11;
 const STORE_IMAGES = 'images';
 const STORE_GENBA = 'genba';
 const STORE_KOUTEI = 'koutei';
@@ -32,6 +32,7 @@ const STORE_TALK_ANALYSIS = 'talkAnalysis';
 const STORE_KOUTEI_IMPORT = 'kouteiImport';
 const STORE_CUSTOM_CATEGORY = 'customCategory'; // v9追加
 const STORE_PHOTO_MANAGER = 'photoStore'; // v10追加: Phase6写真管理
+const STORE_REPORT = 'reportStore'; // v11追加: Phase7日報・報告書
 
 // DB接続（シングルトン）
 let _dbPromise = null;
@@ -124,6 +125,13 @@ function getDB() {
         pmStore.createIndex('category', 'category', { unique: false });
         pmStore.createIndex('takenDate', 'takenDate', { unique: false });
         pmStore.createIndex('genbaId_category', ['genbaId', 'category'], { unique: false });
+      }
+      // v11: Phase7日報・報告書ストア
+      if (!db.objectStoreNames.contains(STORE_REPORT)) {
+        var rpStore = db.createObjectStore(STORE_REPORT, { keyPath: 'id', autoIncrement: true });
+        rpStore.createIndex('type', 'type', { unique: false });
+        rpStore.createIndex('status', 'status', { unique: false });
+        rpStore.createIndex('date', 'date', { unique: false });
       }
     };
 
@@ -1620,4 +1628,86 @@ window.getPhotoManager = getPhotoManager;
 window.getAllPhotoManager = getAllPhotoManager;
 window.deletePhotoManager = deletePhotoManager;
 
-console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（v10 Phase6写真管理対応）');
+// ==========================================
+// v11追加: Phase7 日報・報告書（reportStore）CRUD
+// ==========================================
+
+async function saveReport(record, _retry) {
+  var now = new Date().toISOString();
+  if (!record.createdAt) record.createdAt = now;
+  record.updatedAt = now;
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_REPORT, 'readwrite');
+      tx.objectStore(STORE_REPORT).put(record);
+      tx.oncomplete = function() { resolve(record); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] saveReport失敗:', e);
+    if (!_retry) { _dbPromise = null; return saveReport(record, true); }
+    return null;
+  }
+}
+
+async function getReport(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_REPORT, 'readonly');
+      var req = tx.objectStore(STORE_REPORT).get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getReport失敗:', e);
+    if (!_retry) { _dbPromise = null; return getReport(id, true); }
+    return null;
+  }
+}
+
+async function getAllReports(_retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_REPORT, 'readonly');
+      var req = tx.objectStore(STORE_REPORT).getAll();
+      req.onsuccess = function() {
+        var results = req.result || [];
+        results.sort(function(a, b) {
+          return (b.updatedAt || '').localeCompare(a.updatedAt || '');
+        });
+        resolve(results);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] getAllReports失敗:', e);
+    if (!_retry) { _dbPromise = null; return getAllReports(true); }
+    return [];
+  }
+}
+
+async function deleteReport(id, _retry) {
+  try {
+    var db = await getDB();
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE_REPORT, 'readwrite');
+      tx.objectStore(STORE_REPORT).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  } catch (e) {
+    console.error('[IDB] deleteReport失敗:', e);
+    if (!_retry) { _dbPromise = null; return deleteReport(id, true); }
+  }
+}
+
+// Phase7日報・報告書
+window.saveReport = saveReport;
+window.getReport = getReport;
+window.getAllReports = getAllReports;
+window.deleteReport = deleteReport;
+
+console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（v11 Phase7日報・報告書対応）');

@@ -1,0 +1,223 @@
+  <!-- ========== 日報・報告書画面 ========== -->
+  <div id="daily-report-screen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="showScreen('home')" title="ホームに戻る">🏠</button>
+      <h1>日報・報告書</h1>
+      <div style="width: 40px;"></div>
+    </div>
+
+    <div class="form-container">
+      <!-- タブ切替 -->
+      <div id="drTabs" style="display: flex; gap: 0; margin-bottom: 16px; border-radius: 10px; overflow: hidden; border: 2px solid #3b82f6;">
+        <button onclick="drSwitchTab('daily')" id="drTabDaily" style="flex:1; padding: 12px 8px; font-size: 14px; font-weight: bold; border: none; cursor: pointer; background: #3b82f6; color: white;">
+          作業日報
+        </button>
+        <button onclick="drSwitchTab('completion')" id="drTabCompletion" style="flex:1; padding: 12px 8px; font-size: 14px; font-weight: bold; border: none; cursor: pointer; background: white; color: #3b82f6;">
+          完了報告書
+        </button>
+      </div>
+
+      <!-- 新規作成ボタン -->
+      <button onclick="drCreateNew()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px;">
+        ＋ 新規作成
+      </button>
+
+      <!-- 一覧 -->
+      <div id="drList">
+        <div class="empty-state">
+          <div class="empty-state-icon">📝</div>
+          <div>報告書がありません</div>
+          <div style="font-size: 12px; margin-top: 8px;">「＋新規作成」で日報や報告書を作成してください</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 作業日報 作成/編集モーダル ====== -->
+  <div id="drDailyModal" class="ocr-loading hidden" style="background: rgba(0,0,0,0.5);">
+    <div style="background: white; border-radius: 16px; width: 95%; max-width: 520px; max-height: 94vh; display: flex; flex-direction: column;">
+      <!-- ヘッダー -->
+      <div style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 17px;" id="drDailyTitle">作業日報 作成</h3>
+        <button onclick="drCloseDailyModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#6b7280; padding:4px;">✕</button>
+      </div>
+      <!-- フォーム -->
+      <div style="flex: 1; overflow-y: auto; padding: 16px;" id="drDailyFormBody">
+        <input type="hidden" id="drDailyEditId" value="">
+        <!-- 基本情報 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+          <div>
+            <label style="font-size: 13px; color: #374151; font-weight: 500;">日付</label>
+            <input type="date" id="drDailyDate" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size: 13px; color: #374151; font-weight: 500;">天気</label>
+            <div id="drWeatherBtns" style="display:flex; gap:4px; margin-top:4px;">
+              <button type="button" onclick="drSelectWeather(this,'晴れ')" data-w="晴れ" style="flex:1; padding:8px 4px; border:2px solid #d1d5db; border-radius:8px; background:white; cursor:pointer; font-size:14px;" class="dr-weather-active">☀晴</button>
+              <button type="button" onclick="drSelectWeather(this,'曇り')" data-w="曇り" style="flex:1; padding:8px 4px; border:2px solid #d1d5db; border-radius:8px; background:white; cursor:pointer; font-size:14px;">☁曇</button>
+              <button type="button" onclick="drSelectWeather(this,'雨')" data-w="雨" style="flex:1; padding:8px 4px; border:2px solid #d1d5db; border-radius:8px; background:white; cursor:pointer; font-size:14px;">🌧雨</button>
+              <button type="button" onclick="drSelectWeather(this,'雪')" data-w="雪" style="flex:1; padding:8px 4px; border:2px solid #d1d5db; border-radius:8px; background:white; cursor:pointer; font-size:14px;">❄雪</button>
+            </div>
+            <input type="hidden" id="drDailyWeather" value="晴れ">
+          </div>
+        </div>
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 13px; color: #374151; font-weight: 500;">記入者</label>
+          <input type="text" id="drDailyReporter" placeholder="記入者名" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
+        </div>
+
+        <!-- 現場エントリコンテナ -->
+        <div id="drEntriesContainer"></div>
+
+        <!-- 現場追加ボタン -->
+        <button onclick="drAddEntry()" style="width:100%; padding:12px; background:#f0f9ff; color:#3b82f6; border:2px dashed #93c5fd; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; margin-bottom:14px;">
+          ＋ 現場を追加
+        </button>
+
+        <!-- 走行距離・特記事項 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+          <div>
+            <label style="font-size: 13px; color: #374151; font-weight: 500;">走行距離</label>
+            <div style="display:flex; align-items:center; gap:4px; margin-top:4px;">
+              <input type="number" id="drDailyMileage" placeholder="0" style="flex:1; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">
+              <span style="font-size:14px; color:#6b7280;">km</span>
+            </div>
+          </div>
+          <div>
+            <label style="font-size: 13px; color: #374151; font-weight: 500;">気温</label>
+            <div style="display:flex; align-items:center; gap:4px; margin-top:4px;">
+              <input type="number" id="drDailyTemp" placeholder="" style="flex:1; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">
+              <span style="font-size:14px; color:#6b7280;">℃</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 13px; color: #374151; font-weight: 500;">特記事項</label>
+          <textarea id="drDailyNotes" rows="2" placeholder="安全事項、連絡事項など" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; resize:vertical; margin-top:4px; box-sizing:border-box;"></textarea>
+        </div>
+      </div>
+      <!-- フッターボタン -->
+      <div style="padding: 12px 16px; border-top: 1px solid #e5e7eb; display: flex; gap: 8px;">
+        <button onclick="drSaveDailyDraft()" style="flex:1; padding:14px; background:#f3f4f6; color:#374151; border:1px solid #d1d5db; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">
+          下書き保存
+        </button>
+        <button onclick="drExportDailyPDF()" style="flex:1; padding:14px; background:linear-gradient(135deg,#8b5cf6,#6d28d9); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">
+          PDF出力＆共有
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 完了報告書 作成/編集モーダル ====== -->
+  <div id="drCompletionModal" class="ocr-loading hidden" style="background: rgba(0,0,0,0.5);">
+    <div style="background: white; border-radius: 16px; width: 95%; max-width: 520px; max-height: 94vh; display: flex; flex-direction: column;">
+      <!-- ヘッダー -->
+      <div style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 17px;" id="drCompTitle">完了報告書 作成</h3>
+        <button onclick="drCloseCompletionModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#6b7280; padding:4px;">✕</button>
+      </div>
+      <!-- フォーム -->
+      <div style="flex: 1; overflow-y: auto; padding: 16px;" id="drCompFormBody">
+        <input type="hidden" id="drCompEditId" value="">
+        <!-- 基本情報 -->
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 13px; color: #374151; font-weight: 500;">報告日</label>
+          <input type="date" id="drCompDate" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 13px; color: #374151; font-weight: 500;">工事名</label>
+          <input type="text" id="drCompKojiName" placeholder="例: 給排水設備改修工事" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 13px; color: #374151; font-weight: 500;">現場</label>
+          <div style="display:flex; gap:6px; margin-top:4px;">
+            <select id="drCompGenba" onchange="drOnCompGenbaChange()" style="flex:1; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">
+              <option value="">選択してください</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 13px; color: #374151; font-weight: 500;">住所</label>
+          <input type="text" id="drCompAddress" placeholder="自動入力または手動" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div>
+            <label style="font-size: 13px; color: #374151; font-weight: 500;">工期開始</label>
+            <input type="date" id="drCompPeriodStart" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size: 13px; color: #374151; font-weight: 500;">工期終了</label>
+            <input type="date" id="drCompPeriodEnd" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div>
+            <label style="font-size: 13px; color: #374151; font-weight: 500;">施工者</label>
+            <input type="text" id="drCompContractor" placeholder="会社名" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size: 13px; color: #374151; font-weight: 500;">担当者</label>
+            <input type="text" id="drCompTantou" placeholder="担当者名" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-top:4px;">
+          </div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 13px; color: #374151; font-weight: 500;">施工内容</label>
+          <textarea id="drCompContent" rows="3" placeholder="施工内容を記入" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; resize:vertical; margin-top:4px; box-sizing:border-box;"></textarea>
+        </div>
+
+        <!-- 施工写真台帳 -->
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 14px; color: #374151; font-weight: bold;">施工写真台帳</label>
+          <div id="drPhotoSetsContainer" style="margin-top: 8px;"></div>
+          <button onclick="drAddPhotoSet()" style="width:100%; padding:10px; background:#f0f9ff; color:#3b82f6; border:2px dashed #93c5fd; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer; margin-top:8px;">
+            ＋ 写真ペアを追加
+          </button>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 13px; color: #374151; font-weight: 500;">備考</label>
+          <textarea id="drCompRemarks" rows="2" placeholder="備考" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; resize:vertical; margin-top:4px; box-sizing:border-box;"></textarea>
+        </div>
+      </div>
+      <!-- フッターボタン -->
+      <div style="padding: 12px 16px; border-top: 1px solid #e5e7eb; display: flex; gap: 8px;">
+        <button onclick="drSaveCompDraft()" style="flex:1; padding:14px; background:#f3f4f6; color:#374151; border:1px solid #d1d5db; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">
+          下書き保存
+        </button>
+        <button onclick="drExportCompPDF()" style="flex:1; padding:14px; background:linear-gradient(135deg,#8b5cf6,#6d28d9); color:white; border:none; border-radius:10px; font-size:14px; font-weight:bold; cursor:pointer;">
+          PDF出力＆共有
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 写真選択モーダル ====== -->
+  <div id="drPhotoPickerModal" class="ocr-loading hidden" style="background: rgba(0,0,0,0.5);">
+    <div style="background: white; border-radius: 16px; width: 95%; max-width: 480px; max-height: 85vh; display: flex; flex-direction: column;">
+      <div style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 17px;">写真を選択</h3>
+        <button onclick="drClosePhotoPicker()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#6b7280; padding:4px;">✕</button>
+      </div>
+      <!-- フィルター -->
+      <div style="padding: 10px 16px; border-bottom: 1px solid #f3f4f6;">
+        <select id="drPickerGenba" onchange="drLoadPickerPhotos()" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-bottom:6px;">
+          <option value="all">全ての現場</option>
+        </select>
+        <div style="display:flex; gap:4px;">
+          <button onclick="drPickerCatFilter('all')" class="dr-picker-cat-active" data-cat="all" style="flex:1; padding:6px; border:1px solid #d1d5db; border-radius:6px; font-size:12px; cursor:pointer; background:#3b82f6; color:white; font-weight:bold;">全部</button>
+          <button onclick="drPickerCatFilter('before')" data-cat="before" style="flex:1; padding:6px; border:1px solid #d1d5db; border-radius:6px; font-size:12px; cursor:pointer; background:white; color:#374151;">施工前</button>
+          <button onclick="drPickerCatFilter('during')" data-cat="during" style="flex:1; padding:6px; border:1px solid #d1d5db; border-radius:6px; font-size:12px; cursor:pointer; background:white; color:#374151;">施工中</button>
+          <button onclick="drPickerCatFilter('after')" data-cat="after" style="flex:1; padding:6px; border:1px solid #d1d5db; border-radius:6px; font-size:12px; cursor:pointer; background:white; color:#374151;">施工後</button>
+        </div>
+      </div>
+      <!-- 写真グリッド -->
+      <div id="drPickerGrid" style="flex:1; overflow-y:auto; padding:12px;">
+        <div style="text-align:center; color:#9ca3af; padding:30px; font-size:14px;">写真がありません</div>
+      </div>
+      <!-- 選択完了 -->
+      <div style="padding: 12px 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <span id="drPickerCount" style="font-size:13px; color:#6b7280;">選択中: 0枚</span>
+        <button onclick="drConfirmPhotoPick()" style="padding:10px 24px; background:#3b82f6; color:white; border:none; border-radius:8px; font-size:14px; font-weight:bold; cursor:pointer;">完了</button>
+      </div>
+    </div>
+  </div>

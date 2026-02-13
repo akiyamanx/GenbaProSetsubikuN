@@ -25,6 +25,7 @@ const SCREEN_FILES = [
   'koutei-import',
   'my-schedule',
   'photo-manager',
+  'daily-report',
   'pricesearch',
   'help',
   'tax',
