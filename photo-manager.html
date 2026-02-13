@@ -60,9 +60,26 @@
         <!-- 登録フォーム -->
         <div class="pm-register-form" id="pmRegisterForm" style="display:none;">
           <label>現場（必須）</label>
-          <select id="pmRegGenba" required>
-            <option value="">選択してください</option>
-          </select>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="pmRegGenba" required style="flex: 1;">
+              <option value="">選択してください</option>
+            </select>
+            <button type="button" class="pm-new-genba-btn" id="pmNewGenbaBtn">＋新規</button>
+          </div>
+
+          <!-- 新規現場ミニフォーム -->
+          <div id="pmNewGenbaForm" style="display: none;">
+            <div class="pm-new-genba-form">
+              <label>現場名</label>
+              <input type="text" id="pmNewGenbaName" placeholder="例: 小出邸">
+              <label>住所（任意）</label>
+              <input type="text" id="pmNewGenbaAddress" placeholder="例: 千葉県袖ケ浦市...">
+              <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <button type="button" class="pm-register-btn" style="flex:1; padding:8px; font-size:14px;" id="pmNewGenbaAddBtn">追加する</button>
+                <button type="button" class="pm-cancel-btn" style="flex:1; padding:8px;" id="pmNewGenbaCancelBtn">キャンセル</button>
+              </div>
+            </div>
+          </div>
 
           <label>撮影区分（必須）</label>
           <div class="pm-radio-group">

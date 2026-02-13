@@ -62,6 +62,14 @@ function pmSetupEvents() {
     });
   });
 
+  // 新規現場ボタン
+  var newGenbaBtn = document.getElementById('pmNewGenbaBtn');
+  if (newGenbaBtn) newGenbaBtn.onclick = pmShowNewGenbaForm;
+  var newGenbaAddBtn = document.getElementById('pmNewGenbaAddBtn');
+  if (newGenbaAddBtn) newGenbaAddBtn.onclick = pmAddNewGenba;
+  var newGenbaCancelBtn = document.getElementById('pmNewGenbaCancelBtn');
+  if (newGenbaCancelBtn) newGenbaCancelBtn.onclick = pmHideNewGenbaForm;
+
   // 詳細モーダル
   var detailBack = document.getElementById('pmDetailBackBtn');
   if (detailBack) detailBack.onclick = pmCloseDetailModal;
@@ -528,6 +536,69 @@ async function pmSharePhoto(photoId) {
   } catch (e) {
     console.error('[PhotoManager] 共有エラー:', e);
     alert('共有に失敗しました');
+  }
+}
+
+// ==========================================
+// 新規現場追加（写真登録モーダル内）
+// ==========================================
+
+function pmShowNewGenbaForm() {
+  document.getElementById('pmNewGenbaForm').style.display = 'block';
+  document.getElementById('pmNewGenbaName').value = '';
+  document.getElementById('pmNewGenbaAddress').value = '';
+  document.getElementById('pmNewGenbaName').focus();
+}
+
+function pmHideNewGenbaForm() {
+  document.getElementById('pmNewGenbaForm').style.display = 'none';
+}
+
+async function pmAddNewGenba() {
+  var name = document.getElementById('pmNewGenbaName')?.value?.trim();
+  if (!name) {
+    alert('現場名を入力してください');
+    return;
+  }
+  var address = document.getElementById('pmNewGenbaAddress')?.value?.trim() || '';
+
+  try {
+    // saveGenba()を使用（generateId()でID自動生成、status=進行中）
+    var genba = {
+      name: name,
+      address: address,
+      status: '進行中'
+    };
+    var saved = await saveGenba(genba);
+    if (!saved) {
+      alert('現場の保存に失敗しました');
+      return;
+    }
+
+    // 登録モーダルの現場selectに追加 & 自動選択
+    var regSelect = document.getElementById('pmRegGenba');
+    if (regSelect) {
+      var opt = document.createElement('option');
+      opt.value = saved.id;
+      opt.textContent = saved.name;
+      regSelect.appendChild(opt);
+      regSelect.value = saved.id;
+    }
+
+    // フィルターselectにも追加
+    var filterSelect = document.getElementById('pmGenbaFilter');
+    if (filterSelect) {
+      var fOpt = document.createElement('option');
+      fOpt.value = saved.id;
+      fOpt.textContent = saved.name;
+      filterSelect.appendChild(fOpt);
+    }
+
+    pmHideNewGenbaForm();
+    console.log('[PhotoManager] 新規現場追加:', saved.name, saved.id);
+  } catch (e) {
+    console.error('[PhotoManager] 現場追加エラー:', e);
+    alert('現場の追加に失敗しました');
   }
 }
 
