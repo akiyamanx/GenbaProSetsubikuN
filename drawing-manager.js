@@ -278,7 +278,7 @@ function dwEsc(s) {
 // === 登録モーダル ===
 
 function dwOpenRegisterModal() {
-  console.log('[図面] モーダル表示関数が呼ばれました');
+  alert('[図面] モーダル表示関数が呼ばれました');
   console.log('[DrawingManager] モーダルを開きます');
   var modal = document.getElementById('dwRegisterModal');
   if (!modal) { console.error('[DrawingManager] dwRegisterModal が見つかりません'); return; }
