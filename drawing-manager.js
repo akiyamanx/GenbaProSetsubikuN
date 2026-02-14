@@ -276,16 +276,26 @@ function dwEsc(s) {
 // === 登録モーダル ===
 
 function dwOpenRegisterModal() {
+  console.log('[DrawingManager] モーダルを開きます');
   var modal = document.getElementById('dwRegisterModal');
-  if (!modal) return;
+  if (!modal) { console.error('[DrawingManager] dwRegisterModal が見つかりません'); return; }
   dwSelectedFile = null;
-  document.getElementById('dwFileInput').value = '';
-  document.getElementById('dwFilePreview').innerHTML = '<div style="color:#9ca3af;font-size:13px;">ファイルを選択してください</div>';
+  var fi = document.getElementById('dwFileInput');
+  if (fi) fi.value = '';
+  // ファイル選択エリアをリセット
+  var fa = document.getElementById('dwFileArea');
+  if (fa) {
+    fa.innerHTML = '<div style="font-size:40px; margin-bottom:8px;">📄</div>' +
+      '<div style="color:#6366f1; font-weight:bold;">タップしてファイルを選択</div>' +
+      '<div style="color:#999; font-size:12px; margin-top:4px;">PDF / JPG / PNG（PDF:最大20MB / 画像:最大10MB）</div>';
+  }
+  var preview = document.getElementById('dwFilePreview');
+  if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
   var regBtn = document.getElementById('dwRegisterBtn');
-  regBtn.disabled = true;
-  regBtn.style.opacity = '0.5';
+  if (regBtn) { regBtn.disabled = true; regBtn.style.opacity = '0.5'; }
   dwLoadGenbaSelect();
-  modal.style.display = 'flex';
+  modal.style.display = 'block';
+  console.log('[DrawingManager] モーダル表示完了');
 }
 
 function dwCloseRegisterModal() {
@@ -322,23 +332,30 @@ function dwHandleFileSelect(e) {
     e.target.value = ''; return;
   }
   dwSelectedFile = file;
-  var preview = document.getElementById('dwFilePreview');
   var mb = (file.size / 1024 / 1024).toFixed(1);
-  var tl = isPdf ? 'PDF' : '画像';
-  if (isPdf) {
-    preview.innerHTML = '<div style="text-align:center;"><div style="font-size:36px;">📄</div>' +
-      '<div style="font-size:13px;margin-top:4px;">' + dwEsc(file.name) + '</div>' +
-      '<div style="font-size:11px;color:#6b7280;">' + tl + ' / ' + mb + 'MB</div></div>';
-  } else {
-    var url = URL.createObjectURL(file);
-    dwObjectUrls.push(url);
-    preview.innerHTML = '<div style="text-align:center;"><img src="' + url + '" style="max-width:100%;max-height:150px;border-radius:8px;">' +
-      '<div style="font-size:13px;margin-top:4px;">' + dwEsc(file.name) + '</div>' +
-      '<div style="font-size:11px;color:#6b7280;">' + tl + ' / ' + mb + 'MB</div></div>';
+  var icon = isPdf ? '📄' : '🖼️';
+  // ファイルエリア更新
+  var fa = document.getElementById('dwFileArea');
+  if (fa) {
+    fa.innerHTML = '<div style="font-size:40px; margin-bottom:8px;">' + icon + '</div>' +
+      '<div style="color:#6366f1; font-weight:bold;">' + dwEsc(file.name) + '</div>' +
+      '<div style="color:#999; font-size:12px; margin-top:4px;">' + (isPdf ? 'PDF' : '画像') + ' / ' + mb + 'MB ｜ タップで変更</div>';
+  }
+  // 画像プレビュー
+  var preview = document.getElementById('dwFilePreview');
+  if (preview) {
+    if (!isPdf) {
+      var url = URL.createObjectURL(file);
+      dwObjectUrls.push(url);
+      preview.innerHTML = '<img src="' + url + '" style="max-width:100%;max-height:150px;border-radius:8px;">';
+      preview.style.display = 'block';
+    } else {
+      preview.style.display = 'none';
+    }
   }
   var regBtn = document.getElementById('dwRegisterBtn');
-  regBtn.disabled = false;
-  regBtn.style.opacity = '1';
+  if (regBtn) { regBtn.disabled = false; regBtn.style.opacity = '1'; }
+  console.log('[DrawingManager] ファイル選択:', file.name, mb + 'MB');
 }
 
 // === 図面登録実行 ===
@@ -462,5 +479,9 @@ window.deleteDrawingPin = deleteDrawingPin;
 window.initDrawingScreen = initDrawingScreen;
 window.dwOpenDrawing = dwOpenDrawing;
 window.dwDeleteDrawing = dwDeleteDrawing;
+window.dwOpenRegisterModal = dwOpenRegisterModal;
+window.dwCloseRegisterModal = dwCloseRegisterModal;
+window.dwRegisterDrawing = dwRegisterDrawing;
+window.dwHandleFileSelect = dwHandleFileSelect;
 
 console.log('[drawing-manager.js] Phase8 Step1 図面管理モジュール読み込み完了（v12）');

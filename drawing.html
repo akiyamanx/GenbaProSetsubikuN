@@ -22,44 +22,47 @@
       </div>
     </div>
 
-    <!-- 登録モーダル -->
-    <div id="dwRegisterModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9000; align-items:center; justify-content:center; padding:20px;">
-      <div style="background:white; border-radius:16px; width:100%; max-width:400px; max-height:90vh; overflow-y:auto;">
-        <!-- モーダルヘッダ -->
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #e5e7eb;">
-          <h3 style="margin:0; font-size:16px;">📐 図面を追加</h3>
-          <button id="dwRegCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280; padding:0; line-height:1;">×</button>
+  </div>
+
+  <!-- 図面登録モーダル（screen外に配置しz-index問題を回避） -->
+  <div id="dwRegisterModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:9000;">
+    <!-- オーバーレイ背景 -->
+    <div onclick="if(typeof dwCloseRegisterModal==='function')dwCloseRegisterModal()" style="position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5);"></div>
+    <!-- モーダル本体 -->
+    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:white; border-radius:16px; width:calc(100% - 40px); max-width:400px; max-height:90vh; overflow-y:auto; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+      <!-- モーダルヘッダ -->
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #e5e7eb;">
+        <h3 style="margin:0; font-size:16px;">📐 図面を追加</h3>
+        <button id="dwRegCloseBtn" onclick="if(typeof dwCloseRegisterModal==='function')dwCloseRegisterModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280; padding:0; line-height:1;">×</button>
+      </div>
+
+      <div style="padding:20px;">
+        <!-- 現場選択 -->
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:13px; font-weight:bold; color:#374151; margin-bottom:6px;">🏗️ 現場を選択</label>
+          <select id="dwRegGenba" style="width:100%; padding:12px; font-size:16px; border:2px solid #e5e7eb; border-radius:10px; background:white;">
+            <option value="">-- 現場を選択 --</option>
+          </select>
         </div>
 
-        <div style="padding:20px;">
-          <!-- 現場選択 -->
-          <div style="margin-bottom:16px;">
-            <label style="display:block; font-size:13px; font-weight:bold; color:#374151; margin-bottom:6px;">🏗️ 現場</label>
-            <select id="dwRegGenba" style="width:100%; padding:10px 12px; font-size:14px; border:2px solid #e5e7eb; border-radius:10px; background:white;">
-              <option value="">-- 現場を選択 --</option>
-            </select>
+        <!-- ファイル選択 -->
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:13px; font-weight:bold; color:#374151; margin-bottom:6px;">📎 ファイルを選択</label>
+          <input type="file" id="dwFileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none;">
+          <div id="dwFileArea" onclick="document.getElementById('dwFileInput').click()" style="border:2px dashed #6366f1; border-radius:12px; padding:30px 16px; text-align:center; cursor:pointer; background:#f8f9ff;">
+            <div style="font-size:40px; margin-bottom:8px;">📄</div>
+            <div style="color:#6366f1; font-weight:bold;">タップしてファイルを選択</div>
+            <div style="color:#999; font-size:12px; margin-top:4px;">PDF / JPG / PNG（PDF:最大20MB / 画像:最大10MB）</div>
           </div>
+        </div>
 
-          <!-- ファイル選択 -->
-          <div style="margin-bottom:16px;">
-            <label style="display:block; font-size:13px; font-weight:bold; color:#374151; margin-bottom:6px;">📎 ファイル選択</label>
-            <input type="file" id="dwFileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none;">
-            <button onclick="document.getElementById('dwFileInput').click()" style="width:100%; padding:12px; font-size:14px; font-weight:bold; background:#f3f4f6; color:#374151; border:2px dashed #d1d5db; border-radius:10px; cursor:pointer;">
-              📁 ファイルを選択（PDF / JPG / PNG）
-            </button>
-            <div style="font-size:11px; color:#9ca3af; margin-top:4px;">PDF: 最大20MB / 画像: 最大10MB</div>
-          </div>
+        <!-- プレビュー -->
+        <div id="dwFilePreview" style="display:none; min-height:60px; background:#f9fafb; border-radius:10px; padding:12px; text-align:center; margin-bottom:16px;"></div>
 
-          <!-- プレビュー -->
-          <div id="dwFilePreview" style="min-height:60px; background:#f9fafb; border-radius:10px; padding:12px; display:flex; align-items:center; justify-content:center; margin-bottom:20px;">
-            <div style="color:#9ca3af; font-size:13px;">ファイルを選択してください</div>
-          </div>
-
-          <!-- ボタン -->
-          <div style="display:flex; gap:10px;">
-            <button id="dwRegCancelBtn" style="flex:1; padding:12px; font-size:14px; background:#f3f4f6; color:#374151; border:none; border-radius:10px; cursor:pointer;">キャンセル</button>
-            <button id="dwRegisterBtn" disabled style="flex:1; padding:12px; font-size:14px; font-weight:bold; background:#6366f1; color:white; border:none; border-radius:10px; cursor:pointer; opacity:0.5;">登録</button>
-          </div>
+        <!-- ボタン -->
+        <div style="display:flex; gap:10px;">
+          <button id="dwRegCancelBtn" onclick="if(typeof dwCloseRegisterModal==='function')dwCloseRegisterModal()" style="flex:1; padding:14px; font-size:16px; background:#f3f4f6; color:#374151; border:2px solid #ddd; border-radius:10px; cursor:pointer;">キャンセル</button>
+          <button id="dwRegisterBtn" disabled onclick="if(typeof dwRegisterDrawing==='function')dwRegisterDrawing()" style="flex:1; padding:14px; font-size:16px; font-weight:bold; background:#6366f1; color:white; border:none; border-radius:10px; cursor:pointer; opacity:0.5;">登録</button>
         </div>
       </div>
     </div>
