@@ -1023,13 +1023,13 @@ function drShowToast(message) {
 function drShowLoading(text) {
   var overlay = document.getElementById('drLoadingOverlay');
   var textEl = document.getElementById('drLoadingText');
-  if (overlay) { overlay.classList.remove('hidden'); overlay.style.display = 'flex'; }
+  if (overlay) overlay.style.display = 'flex';
   if (textEl) textEl.textContent = text || 'PDF生成中...';
 }
 
 function drHideLoading() {
   var overlay = document.getElementById('drLoadingOverlay');
-  if (overlay) { overlay.classList.add('hidden'); overlay.style.display = 'none'; }
+  if (overlay) overlay.style.display = 'none';
 }
 
 // === グローバル公開 ===
