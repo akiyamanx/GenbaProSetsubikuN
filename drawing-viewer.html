@@ -5,13 +5,14 @@
       <button class="header-btn" id="dvBackBtn" onclick="if(typeof dvGoBack==='function')dvGoBack()">←</button>
       <h1 id="dvTitle" style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">図面ビューア</h1>
       <div style="display:flex;gap:4px;">
+        <button class="header-btn" id="dvRotateBtn" onclick="if(typeof dvRotate==='function')dvRotate()" style="font-size:16px;">🔄</button>
         <button class="header-btn" id="dvModeView" onclick="if(typeof dvSetMode==='function')dvSetMode('view')" style="font-size:16px;opacity:1;">👆</button>
         <button class="header-btn" id="dvModePin" onclick="if(typeof dvSetMode==='function')dvSetMode('pin')" style="font-size:16px;opacity:0.4;">📌</button>
       </div>
     </div>
 
     <!-- 図面表示エリア -->
-    <div id="dvContainer" style="position:relative;flex:1;overflow:hidden;background:#1e1e1e;touch-action:none;user-select:none;-webkit-user-select:none;">
+    <div id="dvContainer" style="position:relative;overflow:hidden;background:#f0f0f0;touch-action:none;user-select:none;-webkit-user-select:none;height:calc(100vh - 72px);">
       <div id="dvTransform" style="transform-origin:0 0;will-change:transform;">
         <canvas id="dvCanvas" style="display:none;"></canvas>
         <img id="dvImage" style="display:none;max-width:none;" alt="">

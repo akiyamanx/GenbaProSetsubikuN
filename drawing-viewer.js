@@ -1,13 +1,6 @@
-// ==========================================
-// drawing-viewer.js
-// Phase8 Step2: 図面ビューア
-// PDF.js + 画像表示 + ピンチ操作
-// ==========================================
-// PDFはpdf.jsでCanvasにレンダリング、
-// 画像はそのまま<img>で表示。
-// 2本指ピンチ拡大縮小 + 1本指パン + ダブルタップ。
+// drawing-viewer.js - Phase8 Step2: 図面ビューア
+// PDF.js + 画像表示 + ピンチ操作 + 回転
 // 依存: drawing-manager.js（getDrawing）, pdf.js（CDN）
-// ==========================================
 
 // === 状態管理 ===
 var dvDrawingId = null;
@@ -24,6 +17,9 @@ var dvTransX = 0;
 var dvTransY = 0;
 var dvMinScale = 0.5;
 var dvMaxScale = 5;
+
+// 回転状態
+var dvRotation = 0; // 0, 90, 180, 270
 
 // タッチ状態
 var dvTouches = [];
@@ -42,7 +38,7 @@ async function initDrawingViewer(drawingId) {
   console.log('[DrawingViewer] 初期化:', drawingId);
   dvCleanup();
   dvDrawingId = drawingId;
-  dvScale = 1; dvTransX = 0; dvTransY = 0;
+  dvScale = 1; dvTransX = 0; dvTransY = 0; dvRotation = 0;
   dvCurrentPage = 1; dvMode = 'view';
   dvUpdateModeUI();
 
@@ -160,10 +156,8 @@ async function dvRenderPdfPage(pageNum) {
     var ctx = canvas.getContext('2d');
     await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
 
-    // 初期位置を中央に
-    dvScale = 1;
-    dvTransX = (cw - scaledViewport.width) / 2;
-    dvTransY = (ch - scaledViewport.height) / 2;
+    // 初期位置を中央に（回転考慮）
+    dvRecenter();
     dvApplyTransform();
 
     console.log('[DrawingViewer] ページ ' + pageNum + ' レンダリング完了');
@@ -215,13 +209,12 @@ function dvRenderImage() {
     var ch = container.clientHeight;
     var iw = img.naturalWidth;
     var ih = img.naturalHeight;
+    // コンテナにフィットするサイズで表示
     var fitScale = Math.min(cw / iw, ch / ih);
     img.style.width = (iw * fitScale) + 'px';
     img.style.height = (ih * fitScale) + 'px';
 
-    dvScale = 1;
-    dvTransX = (cw - iw * fitScale) / 2;
-    dvTransY = (ch - ih * fitScale) / 2;
+    dvRecenter();
     dvApplyTransform();
     console.log('[DrawingViewer] 画像表示完了');
   };
@@ -235,7 +228,7 @@ function dvRenderImage() {
 function dvApplyTransform() {
   var el = document.getElementById('dvTransform');
   if (el) {
-    el.style.transform = 'translate(' + dvTransX + 'px,' + dvTransY + 'px) scale(' + dvScale + ')';
+    el.style.transform = 'translate(' + dvTransX + 'px,' + dvTransY + 'px) scale(' + dvScale + ') rotate(' + dvRotation + 'deg)';
   }
 }
 
@@ -400,18 +393,7 @@ function dvOnDoubleTap(cx, cy) {
 
   if (dvScale > 1.05) {
     // リセット: フィットに戻す
-    var el = dvDrawingData && dvDrawingData.fileType === 'pdf'
-      ? document.getElementById('dvCanvas')
-      : document.getElementById('dvImage');
-    if (el && container) {
-      var ew = el.getBoundingClientRect().width / dvScale;
-      var eh = el.getBoundingClientRect().height / dvScale;
-      dvScale = 1;
-      dvTransX = (container.clientWidth - ew) / 2;
-      dvTransY = (container.clientHeight - eh) / 2;
-    } else {
-      dvScale = 1; dvTransX = 0; dvTransY = 0;
-    }
+    dvRecenter();
   } else {
     // 2倍拡大（タップ位置中心）
     var newScale = 2;
@@ -436,6 +418,49 @@ function dvGetPinchCenter(t1, t2) {
     x: (t1.clientX + t2.clientX) / 2,
     y: (t1.clientY + t2.clientY) / 2
   };
+}
+
+// === 回転 ===
+
+function dvRotate() {
+  dvRotation = (dvRotation + 90) % 360;
+  // 回転後に中央に再配置
+  dvRecenter();
+  dvApplyTransform();
+}
+
+function dvRecenter() {
+  var container = document.getElementById('dvContainer');
+  if (!container) return;
+  var el = (dvDrawingData && dvDrawingData.fileType === 'pdf')
+    ? document.getElementById('dvCanvas')
+    : document.getElementById('dvImage');
+  if (!el) return;
+  var ew = parseFloat(el.style.width) || el.width || el.naturalWidth || 0;
+  var eh = parseFloat(el.style.height) || el.height || el.naturalHeight || 0;
+  var cw = container.clientWidth;
+  var ch = container.clientHeight;
+  var isRotated = (dvRotation === 90 || dvRotation === 270);
+  var dispW = isRotated ? eh : ew;
+  var dispH = isRotated ? ew : eh;
+  dvScale = Math.min(cw / dispW, ch / dispH);
+
+  // transform: translate(tx,ty) scale(s) rotate(r) with origin 0,0
+  // 回転角度ごとにコンテンツ中心をコンテナ中心に合わせるtx,tyを計算
+  var s = dvScale;
+  if (dvRotation === 0) {
+    dvTransX = (cw - ew * s) / 2;
+    dvTransY = (ch - eh * s) / 2;
+  } else if (dvRotation === 90) {
+    dvTransX = (cw + eh * s) / 2;
+    dvTransY = (ch - ew * s) / 2;
+  } else if (dvRotation === 180) {
+    dvTransX = (cw + ew * s) / 2;
+    dvTransY = (ch + eh * s) / 2;
+  } else if (dvRotation === 270) {
+    dvTransX = (cw - eh * s) / 2;
+    dvTransY = (ch + ew * s) / 2;
+  }
 }
 
 // === モード切替 ===
@@ -467,5 +492,6 @@ window.dvGoBack = dvGoBack;
 window.dvSetMode = dvSetMode;
 window.dvChangePage = dvChangePage;
 window.dvCleanup = dvCleanup;
+window.dvRotate = dvRotate;
 
 console.log('[drawing-viewer.js] Phase8 Step2 図面ビューアモジュール読み込み完了');
