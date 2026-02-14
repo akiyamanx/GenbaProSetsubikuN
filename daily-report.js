@@ -4,7 +4,8 @@
 // 現場Pro 設備くん v11
 // ==========================================
 
-var drCurrentTab = 'daily';
+var drCurrentTab = 'all'; // v1.10変更: 'all' | 'daily' | 'completion'
+var drStatusFilter = 'all'; // v1.10追加: 'all' | 'draft' | 'completed'
 var drEntryCount = 0;
 var drPhotoSetCount = 0;
 // 写真ピッカー用の状態
@@ -18,8 +19,10 @@ var drObjectUrls = [];
 // === 初期化 ===
 async function initDailyReport() {
   console.log('[DailyReport] 初期化開始');
-  drCurrentTab = 'daily';
+  drCurrentTab = 'all';
+  drStatusFilter = 'all';
   drUpdateTabUI();
+  drUpdateStatusFilterUI();
   await drRenderList();
   console.log('[DailyReport] 初期化完了');
 }
@@ -32,19 +35,50 @@ function drSwitchTab(tab) {
 }
 
 function drUpdateTabUI() {
-  var tabDaily = document.getElementById('drTabDaily');
-  var tabComp = document.getElementById('drTabCompletion');
-  if (drCurrentTab === 'daily') {
-    tabDaily.style.background = '#3b82f6';
-    tabDaily.style.color = 'white';
-    tabComp.style.background = 'white';
-    tabComp.style.color = '#3b82f6';
-  } else {
-    tabComp.style.background = '#3b82f6';
-    tabComp.style.color = 'white';
-    tabDaily.style.background = 'white';
-    tabDaily.style.color = '#3b82f6';
-  }
+  var tabs = [
+    { id: 'drTabAll', key: 'all' },
+    { id: 'drTabDaily', key: 'daily' },
+    { id: 'drTabCompletion', key: 'completion' }
+  ];
+  tabs.forEach(function(t) {
+    var el = document.getElementById(t.id);
+    if (!el) return;
+    if (drCurrentTab === t.key) {
+      el.style.background = '#3b82f6';
+      el.style.color = 'white';
+    } else {
+      el.style.background = 'white';
+      el.style.color = '#3b82f6';
+    }
+  });
+}
+
+// v1.10追加: ステータスフィルタ
+function drFilterStatus(status) {
+  drStatusFilter = status;
+  drUpdateStatusFilterUI();
+  drRenderList();
+}
+
+function drUpdateStatusFilterUI() {
+  var filters = [
+    { id: 'drStatusAll', key: 'all' },
+    { id: 'drStatusDraft', key: 'draft' },
+    { id: 'drStatusCompleted', key: 'completed' }
+  ];
+  filters.forEach(function(f) {
+    var el = document.getElementById(f.id);
+    if (!el) return;
+    if (drStatusFilter === f.key) {
+      el.style.background = '#f3f4f6';
+      el.style.color = '#374151';
+      el.style.borderColor = '#6b7280';
+    } else {
+      el.style.background = 'white';
+      el.style.color = '#9ca3af';
+      el.style.borderColor = '#d1d5db';
+    }
+  });
 }
 
 // === 一覧表示 ===
@@ -53,57 +87,71 @@ async function drRenderList() {
   if (!listEl) return;
 
   var allReports = await getAllReports();
-  var filtered = allReports.filter(function(r) { return r.type === drCurrentTab; });
+
+  // v1.10: タイプフィルタ
+  var filtered = allReports;
+  if (drCurrentTab !== 'all') {
+    filtered = filtered.filter(function(r) { return r.type === drCurrentTab; });
+  }
+  // v1.10: ステータスフィルタ
+  if (drStatusFilter !== 'all') {
+    filtered = filtered.filter(function(r) { return r.status === drStatusFilter; });
+  }
+
+  // v1.10: 更新日時の降順ソート
+  filtered.sort(function(a, b) {
+    var da = a.updatedAt || a.createdAt || a.date || '';
+    var db = b.updatedAt || b.createdAt || b.date || '';
+    return db > da ? 1 : db < da ? -1 : (b.id || 0) - (a.id || 0);
+  });
 
   if (filtered.length === 0) {
-    var typeLabel = drCurrentTab === 'daily' ? '作業日報' : '完了報告書';
     listEl.innerHTML =
       '<div class="empty-state">' +
         '<div class="empty-state-icon">📝</div>' +
-        '<div>' + typeLabel + 'がありません</div>' +
-        '<div style="font-size:12px; margin-top:8px;">「＋新規作成」で作成してください</div>' +
+        '<div>報告書がありません</div>' +
+        '<div style="font-size:12px; margin-top:8px;">上のボタンから日報や報告書を作成してください</div>' +
       '</div>';
     return;
   }
 
-  var drafts = filtered.filter(function(r) { return r.status === 'draft'; });
-  var completed = filtered.filter(function(r) { return r.status === 'completed'; });
-
   var html = '';
-  if (drafts.length > 0) {
-    html += '<div style="font-size:12px; font-weight:bold; color:#f59e0b; margin-bottom:6px; padding:0 4px;">下書き</div>';
-    drafts.forEach(function(r) { html += drRenderCard(r); });
-  }
-  if (completed.length > 0) {
-    html += '<div style="font-size:12px; font-weight:bold; color:#22c55e; margin:12px 0 6px; padding:0 4px;">完成</div>';
-    completed.forEach(function(r) { html += drRenderCard(r); });
-  }
+  filtered.forEach(function(r) { html += drRenderCard(r); });
   listEl.innerHTML = html;
 }
 
+// v1.10改修: カードにPDFボタン・タイプバッジ・ステータスバッジ追加
 function drRenderCard(r) {
   var dateStr = drFormatDateShort(r.date);
-  var icon = r.status === 'draft' ? '📝' : '✅';
   var statusColor = r.status === 'draft' ? '#f59e0b' : '#22c55e';
+  var statusLabel = r.status === 'draft' ? '下書き' : '完成';
+  var typeLabel = r.type === 'daily' ? '日報' : '完了報告';
+  var typeColor = r.type === 'daily' ? '#3b82f6' : '#10b981';
   var title = r.title || (r.type === 'daily' ? '作業日報' : '完了報告書');
   var sub = '';
   if (r.type === 'daily' && r.entries && r.entries.length > 0) {
-    sub = r.entries.map(function(e) { return e.genbaName || ''; }).filter(Boolean).join('、');
+    sub = r.entries.map(function(e) { return e.genbaName || ''; }).filter(Boolean).join(', ');
   } else if (r.type === 'completion') {
     sub = r.genbaName || '';
   }
 
-  return '<div style="background:white; border-radius:10px; padding:12px 14px; margin-bottom:8px; display:flex; align-items:center; gap:12px; border-left:4px solid ' + statusColor + '; box-shadow:0 1px 4px rgba(0,0,0,0.06);">' +
-    '<div onclick="drOpenReport(' + r.id + ')" style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; cursor:pointer;">' +
-      '<div style="font-size:22px;">' + icon + '</div>' +
-      '<div style="flex:1; min-width:0;">' +
-        '<div style="font-size:14px; font-weight:bold; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(title) + '</div>' +
-        (sub ? '<div style="font-size:12px; color:#9ca3af; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(sub) + '</div>' : '') +
+  return '<div style="background:white; border-radius:12px; padding:14px; margin-bottom:10px; border-left:4px solid ' + statusColor + '; box-shadow:0 1px 4px rgba(0,0,0,0.06);">' +
+    // 上段: タイトル + バッジ
+    '<div onclick="drOpenReport(' + r.id + ')" style="cursor:pointer; margin-bottom:8px;">' +
+      '<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">' +
+        '<span style="font-size:11px; padding:2px 8px; border-radius:4px; background:' + typeColor + '15; color:' + typeColor + '; font-weight:bold;">' + typeLabel + '</span>' +
+        '<span style="font-size:11px; padding:2px 8px; border-radius:4px; background:' + statusColor + '20; color:' + statusColor + '; font-weight:bold;">' + statusLabel + '</span>' +
+        '<span style="font-size:12px; color:#9ca3af; margin-left:auto;">' + dateStr + '</span>' +
       '</div>' +
-      '<div style="font-size:12px; color:#9ca3af; white-space:nowrap;">' + dateStr + '</div>' +
-      '<div style="font-size:18px; color:#d1d5db;">›</div>' +
+      '<div style="font-size:15px; font-weight:bold; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(title) + '</div>' +
+      (sub ? '<div style="font-size:12px; color:#6b7280; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(sub) + '</div>' : '') +
     '</div>' +
-    '<button onclick="event.stopPropagation(); drDeleteReport(' + r.id + ')" style="background:none; border:none; font-size:16px; color:#d1d5db; cursor:pointer; padding:4px 2px;" title="削除">🗑</button>' +
+    // 下段: アクションボタン
+    '<div style="display:flex; gap:6px; border-top:1px solid #f3f4f6; padding-top:8px;">' +
+      '<button onclick="drOpenReport(' + r.id + ')" style="flex:1; padding:8px; background:#eff6ff; color:#3b82f6; border:1px solid #bfdbfe; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer;">編集</button>' +
+      '<button onclick="event.stopPropagation(); drExportPDFFromList(' + r.id + ')" style="flex:1; padding:8px; background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer;">PDF</button>' +
+      '<button onclick="event.stopPropagation(); drDeleteReport(' + r.id + ')" style="padding:8px 12px; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:8px; font-size:13px; cursor:pointer;">削除</button>' +
+    '</div>' +
   '</div>';
 }
 
@@ -116,10 +164,10 @@ function drFormatDateShort(dateStr) {
 
 // === 新規作成 ===
 function drCreateNew() {
-  if (drCurrentTab === 'daily') {
-    drOpenDailyForm(null);
-  } else {
+  if (drCurrentTab === 'completion') {
     drOpenCompletionForm(null);
+  } else {
+    drOpenDailyForm(null);
   }
 }
 
@@ -410,15 +458,13 @@ async function drSaveDailyDraft() {
 
   var saved = await saveReport(report);
   if (saved) {
-    // 前回値を記憶
     localStorage.setItem('report_lastReporter', report.reporter || '');
     localStorage.setItem('report_lastWeather', report.weather || '');
-
     drCloseDailyModal();
     await drRenderList();
-    alert('下書きを保存しました');
+    drShowToast('下書きを保存しました');
   } else {
-    alert('保存に失敗しました');
+    drShowToast('保存に失敗しました');
   }
 }
 
@@ -629,9 +675,9 @@ async function drSaveCompDraft() {
     localStorage.setItem('report_lastReporter', report.tantousha || '');
     drCloseCompletionModal();
     await drRenderList();
-    alert('下書きを保存しました');
+    drShowToast('下書きを保存しました');
   } else {
-    alert('保存に失敗しました');
+    drShowToast('保存に失敗しました');
   }
 }
 
@@ -873,17 +919,20 @@ async function drExportDailyPDF() {
   var report = drCollectDailyData();
   if (!report) return;
   report.status = 'completed';
+  drShowLoading('PDF生成中...');
   var saved = await saveReport(report);
   if (saved) {
     localStorage.setItem('report_lastReporter', report.reporter || '');
     localStorage.setItem('report_lastWeather', report.weather || '');
     if (typeof generateDailyReportPDF === 'function') {
       await generateDailyReportPDF(saved);
-    } else {
-      alert('PDF機能は準備中です');
     }
+    drHideLoading();
     drCloseDailyModal();
     await drRenderList();
+    drShowToast('PDF出力しました');
+  } else {
+    drHideLoading();
   }
 }
 
@@ -891,17 +940,40 @@ async function drExportCompPDF() {
   var report = drCollectCompData();
   if (!report) return;
   report.status = 'completed';
+  drShowLoading('PDF生成中...');
   var saved = await saveReport(report);
   if (saved) {
     localStorage.setItem('report_lastContractor', report.contractor || '');
     localStorage.setItem('report_lastReporter', report.tantousha || '');
     if (typeof generateCompletionReportPDF === 'function') {
       await generateCompletionReportPDF(saved);
-    } else {
-      alert('PDF機能は準備中です');
     }
+    drHideLoading();
     drCloseCompletionModal();
     await drRenderList();
+    drShowToast('PDF出力しました');
+  } else {
+    drHideLoading();
+  }
+}
+
+// v1.10追加: 一覧からPDF出力
+async function drExportPDFFromList(id) {
+  var report = await getReport(id);
+  if (!report) { drShowToast('データが見つかりません'); return; }
+  drShowLoading('PDF生成中...');
+  try {
+    if (report.type === 'daily' && typeof generateDailyReportPDF === 'function') {
+      await generateDailyReportPDF(report);
+    } else if (report.type === 'completion' && typeof generateCompletionReportPDF === 'function') {
+      await generateCompletionReportPDF(report);
+    }
+    drHideLoading();
+    drShowToast('PDF出力しました');
+  } catch (e) {
+    drHideLoading();
+    drShowToast('PDF生成に失敗しました');
+    console.error('[DailyReport] PDF出力エラー:', e);
   }
 }
 
@@ -910,6 +982,7 @@ async function drDeleteReport(id) {
   if (!confirm('この報告書を削除しますか？')) return;
   await deleteReport(id);
   await drRenderList();
+  drShowToast('削除しました');
 }
 
 async function drDeleteFromModal(id, type) {
@@ -921,6 +994,7 @@ async function drDeleteFromModal(id, type) {
     drCloseCompletionModal();
   }
   await drRenderList();
+  drShowToast('削除しました');
 }
 
 // === ObjectURL cleanup ===
@@ -931,9 +1005,37 @@ function drCleanupUrls() {
   drObjectUrls = [];
 }
 
+// v1.10追加: トースト通知
+function drShowToast(message) {
+  var toast = document.getElementById('drToast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.style.display = 'block';
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(function() {
+    toast.style.opacity = '0';
+    setTimeout(function() { toast.style.display = 'none'; }, 300);
+  }, 2000);
+}
+
+// v1.10追加: ローディング表示
+function drShowLoading(text) {
+  var overlay = document.getElementById('drLoadingOverlay');
+  var textEl = document.getElementById('drLoadingText');
+  if (overlay) { overlay.classList.remove('hidden'); overlay.style.display = 'flex'; }
+  if (textEl) textEl.textContent = text || 'PDF生成中...';
+}
+
+function drHideLoading() {
+  var overlay = document.getElementById('drLoadingOverlay');
+  if (overlay) { overlay.classList.add('hidden'); overlay.style.display = 'none'; }
+}
+
 // === グローバル公開 ===
 window.initDailyReport = initDailyReport;
 window.drSwitchTab = drSwitchTab;
+window.drFilterStatus = drFilterStatus;
 window.drCreateNew = drCreateNew;
 window.drOpenReport = drOpenReport;
 window.drCloseDailyModal = drCloseDailyModal;
@@ -953,6 +1055,7 @@ window.drTogglePickerPhoto = drTogglePickerPhoto;
 window.drConfirmPhotoPick = drConfirmPhotoPick;
 window.drExportDailyPDF = drExportDailyPDF;
 window.drExportCompPDF = drExportCompPDF;
+window.drExportPDFFromList = drExportPDFFromList;
 window.drDeleteReport = drDeleteReport;
 window.drOnCompGenbaChange = drOnCompGenbaChange;
 window.drAddPhotoSet = drAddPhotoSet;

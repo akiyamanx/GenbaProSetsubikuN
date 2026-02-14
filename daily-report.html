@@ -7,28 +7,54 @@
     </div>
 
     <div class="form-container">
-      <!-- タブ切替 -->
-      <div id="drTabs" style="display: flex; gap: 0; margin-bottom: 16px; border-radius: 10px; overflow: hidden; border: 2px solid #3b82f6;">
-        <button onclick="drSwitchTab('daily')" id="drTabDaily" style="flex:1; padding: 12px 8px; font-size: 14px; font-weight: bold; border: none; cursor: pointer; background: #3b82f6; color: white;">
-          作業日報
+      <!-- タイプ切替タブ -->
+      <div id="drTabs" style="display: flex; gap: 0; margin-bottom: 10px; border-radius: 10px; overflow: hidden; border: 2px solid #3b82f6;">
+        <button onclick="drSwitchTab('all')" id="drTabAll" style="flex:1; padding: 12px 8px; font-size: 14px; font-weight: bold; border: none; cursor: pointer; background: #3b82f6; color: white;">
+          全て
+        </button>
+        <button onclick="drSwitchTab('daily')" id="drTabDaily" style="flex:1; padding: 12px 8px; font-size: 14px; font-weight: bold; border: none; cursor: pointer; background: white; color: #3b82f6;">
+          日報
         </button>
         <button onclick="drSwitchTab('completion')" id="drTabCompletion" style="flex:1; padding: 12px 8px; font-size: 14px; font-weight: bold; border: none; cursor: pointer; background: white; color: #3b82f6;">
-          完了報告書
+          完了報告
         </button>
       </div>
 
-      <!-- 新規作成ボタン -->
-      <button onclick="drCreateNew()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px;">
-        ＋ 新規作成
-      </button>
+      <!-- ステータスフィルタ -->
+      <div id="drStatusFilter" style="display: flex; gap: 6px; margin-bottom: 12px;">
+        <button onclick="drFilterStatus('all')" id="drStatusAll" style="flex:1; padding: 8px 4px; font-size: 12px; font-weight: bold; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; background: #f3f4f6; color: #374151;">全て</button>
+        <button onclick="drFilterStatus('draft')" id="drStatusDraft" style="flex:1; padding: 8px 4px; font-size: 12px; font-weight: bold; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; background: white; color: #374151;">下書き</button>
+        <button onclick="drFilterStatus('completed')" id="drStatusCompleted" style="flex:1; padding: 8px 4px; font-size: 12px; font-weight: bold; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; background: white; color: #374151;">完成</button>
+      </div>
+
+      <!-- 新規作成ボタン（2列） -->
+      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+        <button onclick="drSwitchTab('daily'); drCreateNew()" style="flex:1; padding: 14px 8px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer;">
+          + 新しい日報
+        </button>
+        <button onclick="drSwitchTab('completion'); drCreateNew()" style="flex:1; padding: 14px 8px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer;">
+          + 完了報告書
+        </button>
+      </div>
 
       <!-- 一覧 -->
       <div id="drList">
         <div class="empty-state">
           <div class="empty-state-icon">📝</div>
           <div>報告書がありません</div>
-          <div style="font-size: 12px; margin-top: 8px;">「＋新規作成」で日報や報告書を作成してください</div>
+          <div style="font-size: 12px; margin-top: 8px;">上のボタンから日報や報告書を作成してください</div>
         </div>
+      </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div id="drToast" style="display:none; position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#1f2937; color:white; padding:12px 24px; border-radius:10px; font-size:14px; font-weight:500; z-index:10010; box-shadow:0 4px 12px rgba(0,0,0,0.3); transition:opacity 0.3s ease; white-space:nowrap;"></div>
+
+    <!-- ローディングオーバーレイ -->
+    <div id="drLoadingOverlay" class="hidden" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:10020;">
+      <div style="background:white; border-radius:16px; padding:32px 40px; text-align:center;">
+        <div style="font-size:32px; margin-bottom:12px; animation:spin 1s linear infinite;">&#9881;</div>
+        <div id="drLoadingText" style="font-size:14px; color:#374151;">PDF生成中...</div>
       </div>
     </div>
   </div>
