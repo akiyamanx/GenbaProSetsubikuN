@@ -209,9 +209,18 @@ function dwSetupEvents() {
 async function dwRenderList() {
   var container = document.getElementById('dwListContainer');
   if (!container) return;
+  // ローディング表示
+  container.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#9ca3af;">' +
+    '<div style="font-size:14px;">読み込み中...</div></div>';
   var filterSel = document.getElementById('dwGenbaFilter');
   var fid = filterSel ? filterSel.value : '';
-  var drawings = fid ? await getDrawingsByGenba(fid) : await getAllDrawings();
+  var drawings;
+  try {
+    drawings = fid ? await getDrawingsByGenba(fid) : await getAllDrawings();
+  } catch (e) {
+    console.error('[DrawingManager] データ取得失敗:', e);
+    drawings = [];
+  }
 
   if (drawings.length === 0) {
     container.innerHTML = '<div style="text-align:center; padding:40px 20px; color:#9ca3af;">' +
