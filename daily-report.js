@@ -281,8 +281,9 @@ async function drAddEntry(data) {
         '<textarea id="drEntryContent_' + idx + '" rows="2" placeholder="作業内容" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; resize:vertical; box-sizing:border-box;">' + escapeHtml((data && data.content) || '') + '</textarea>' +
       '</div>' +
       '<div style="margin-bottom:8px;">' +
-        '<button onclick="drOpenPhotoPickerForEntry(' + idx + ')" style="padding:8px 14px; background:#eff6ff; color:#3b82f6; border:1px solid #bfdbfe; border-radius:8px; font-size:13px; cursor:pointer;">📷 写真を選ぶ</button>' +
+        '<button onclick="drOpenPhotoPickerForEntry(' + idx + ')" style="padding:8px 14px; background:#eff6ff; color:#3b82f6; border:1px solid #bfdbfe; border-radius:8px; font-size:13px; cursor:pointer; width:100%; text-align:center;">📷 写真を選ぶ</button>' +
         '<div id="drEntryPhotos_' + idx + '" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>' +
+        '<div id="drEntryPhotoCount_' + idx + '" style="font-size:12px; color:#6b7280; margin-top:4px;"></div>' +
         '<input type="hidden" id="drEntryPhotoIds_' + idx + '" value="' + ((data && data.photoIds) ? JSON.stringify(data.photoIds) : '[]') + '">' +
       '</div>' +
       '<div>' +
@@ -350,16 +351,55 @@ async function drAddNewGenba(idx) {
 // === 写真サムネイル表示 ===
 async function drRenderEntryThumbs(idx, photoIds) {
   var container = document.getElementById('drEntryPhotos_' + idx);
+  var countEl = document.getElementById('drEntryPhotoCount_' + idx);
   if (!container) return;
   container.innerHTML = '';
+
+  if (!photoIds || photoIds.length === 0) {
+    if (countEl) countEl.textContent = '';
+    return;
+  }
+
   for (var i = 0; i < photoIds.length; i++) {
     var photo = await getPhotoManager(photoIds[i]);
     if (photo && photo.thumbnailBlob) {
       var url = URL.createObjectURL(photo.thumbnailBlob);
       drObjectUrls.push(url);
-      container.innerHTML += '<img src="' + url + '" style="width:56px; height:56px; object-fit:cover; border-radius:6px; border:1px solid #e5e7eb;">';
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative; width:60px; height:60px; border-radius:6px; overflow:hidden; flex-shrink:0;';
+      var img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+      wrap.appendChild(img);
+      // ×削除ボタン
+      var rmBtn = document.createElement('button');
+      rmBtn.textContent = '×';
+      rmBtn.style.cssText = 'position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:50%; background:rgba(0,0,0,0.6); color:white; border:none; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; line-height:1;';
+      rmBtn.setAttribute('data-entry', idx);
+      rmBtn.setAttribute('data-photo', photoIds[i]);
+      rmBtn.addEventListener('click', function() {
+        var eIdx = parseInt(this.getAttribute('data-entry'));
+        var pId = parseInt(this.getAttribute('data-photo')) || this.getAttribute('data-photo');
+        drRemoveEntryPhoto(eIdx, pId);
+      });
+      wrap.appendChild(rmBtn);
+      container.appendChild(wrap);
     }
   }
+
+  if (countEl) countEl.textContent = '選択中: ' + photoIds.length + '枚';
+}
+
+// === エントリから写真を個別削除 ===
+function drRemoveEntryPhoto(entryIdx, photoId) {
+  var hiddenEl = document.getElementById('drEntryPhotoIds_' + entryIdx);
+  if (!hiddenEl) return;
+  var ids = [];
+  try { ids = JSON.parse(hiddenEl.value); } catch(e) {}
+  // photoIdの型を合わせて比較
+  ids = ids.filter(function(id) { return id != photoId; });
+  hiddenEl.value = JSON.stringify(ids);
+  drRenderEntryThumbs(entryIdx, ids);
 }
 
 // === 日報保存 ===
@@ -920,5 +960,6 @@ window.drRemovePhotoSet = drRemovePhotoSet;
 window.drShowNewGenbaForm = drShowNewGenbaForm;
 window.drHideNewGenbaForm = drHideNewGenbaForm;
 window.drAddNewGenba = drAddNewGenba;
+window.drRemoveEntryPhoto = drRemoveEntryPhoto;
 
 console.log('[daily-report.js] ✓ Phase7日報・報告書モジュール読み込み完了');
