@@ -119,6 +119,10 @@ async function showScreen(screenId) {
   if (screenId === 'drawing') {
     if (typeof initDrawingScreen === 'function') initDrawingScreen();
   }
+  // v12追加: Phase8図面ビューア（initはdwOpenDrawingから直接呼び出し）
+  if (screenId === 'drawing-viewer') {
+    // initDrawingViewer は dwOpenDrawing() から drawingId 付きで呼ばれる
+  }
   if (screenId === 'tax') {
     if (typeof selectTaxType === 'function') {
       const savedTaxType = localStorage.getItem('reform_app_tax_type') || 'blue';

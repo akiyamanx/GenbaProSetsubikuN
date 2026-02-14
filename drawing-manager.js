@@ -480,7 +480,8 @@ function dwGenerateImageThumbnail(imgBlob) {
 // === 図面を開く（Step2で実装予定） ===
 
 async function dwOpenDrawing(id) {
-  alert('図面ビューアは次のステップで実装予定です。');
+  if (typeof showScreen === 'function') showScreen('drawing-viewer');
+  if (typeof initDrawingViewer === 'function') initDrawingViewer(id);
 }
 
 // === 図面削除 ===

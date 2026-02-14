@@ -27,6 +27,7 @@ const SCREEN_FILES = [
   'photo-manager',
   'daily-report',
   'drawing',
+  'drawing-viewer',
   'pricesearch',
   'help',
   'tax',
