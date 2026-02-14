@@ -166,14 +166,19 @@ async function deleteDrawingPin(id, _retry) {
 
 async function initDrawingScreen() {
   console.log('[DrawingManager] 初期化開始');
+  // イベントを最初にバインド（非同期処理の失敗に関わらず操作可能にする）
+  dwSetupEvents();
   dwObjectUrls.forEach(function(u) { URL.revokeObjectURL(u); });
   dwObjectUrls = [];
-  var list = await getAllGenba();
-  dwGenbaCache = {};
-  list.forEach(function(g) { dwGenbaCache[g.id] = g; });
-  await dwLoadGenbaFilter();
-  await dwRenderList();
-  dwSetupEvents();
+  try {
+    var list = await getAllGenba();
+    dwGenbaCache = {};
+    list.forEach(function(g) { dwGenbaCache[g.id] = g; });
+    await dwLoadGenbaFilter();
+    await dwRenderList();
+  } catch (e) {
+    console.error('[DrawingManager] 初期化中にエラー:', e);
+  }
   console.log('[DrawingManager] 初期化完了');
 }
 
@@ -276,7 +281,9 @@ function dwOpenRegisterModal() {
   dwSelectedFile = null;
   document.getElementById('dwFileInput').value = '';
   document.getElementById('dwFilePreview').innerHTML = '<div style="color:#9ca3af;font-size:13px;">ファイルを選択してください</div>';
-  document.getElementById('dwRegisterBtn').disabled = true;
+  var regBtn = document.getElementById('dwRegisterBtn');
+  regBtn.disabled = true;
+  regBtn.style.opacity = '0.5';
   dwLoadGenbaSelect();
   modal.style.display = 'flex';
 }
@@ -329,7 +336,9 @@ function dwHandleFileSelect(e) {
       '<div style="font-size:13px;margin-top:4px;">' + dwEsc(file.name) + '</div>' +
       '<div style="font-size:11px;color:#6b7280;">' + tl + ' / ' + mb + 'MB</div></div>';
   }
-  document.getElementById('dwRegisterBtn').disabled = false;
+  var regBtn = document.getElementById('dwRegisterBtn');
+  regBtn.disabled = false;
+  regBtn.style.opacity = '1';
 }
 
 // === 図面登録実行 ===
