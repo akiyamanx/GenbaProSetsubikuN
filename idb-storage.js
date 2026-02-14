@@ -19,7 +19,7 @@
 // ==========================================
 
 const IDB_NAME = 'reform_app_idb';
-const IDB_VERSION = 11;
+const IDB_VERSION = 12;
 const STORE_IMAGES = 'images';
 const STORE_GENBA = 'genba';
 const STORE_KOUTEI = 'koutei';
@@ -33,6 +33,8 @@ const STORE_KOUTEI_IMPORT = 'kouteiImport';
 const STORE_CUSTOM_CATEGORY = 'customCategory'; // v9追加
 const STORE_PHOTO_MANAGER = 'photoStore'; // v10追加: Phase6写真管理
 const STORE_REPORT = 'reportStore'; // v11追加: Phase7日報・報告書
+const STORE_DRAWING = 'drawingStore'; // v12追加: Phase8図面管理
+const STORE_DRAWING_PIN = 'drawingPinStore'; // v12追加: Phase8図面ピン
 
 // DB接続（シングルトン）
 let _dbPromise = null;
@@ -132,6 +134,18 @@ function getDB() {
         rpStore.createIndex('type', 'type', { unique: false });
         rpStore.createIndex('status', 'status', { unique: false });
         rpStore.createIndex('date', 'date', { unique: false });
+      }
+      // v12: Phase8図面管理ストア
+      if (!db.objectStoreNames.contains(STORE_DRAWING)) {
+        var dwStore = db.createObjectStore(STORE_DRAWING, { keyPath: 'id' });
+        dwStore.createIndex('genbaId', 'genbaId', { unique: false });
+        dwStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+      }
+      // v12: Phase8図面ピンストア
+      if (!db.objectStoreNames.contains(STORE_DRAWING_PIN)) {
+        var dpStore = db.createObjectStore(STORE_DRAWING_PIN, { keyPath: 'id' });
+        dpStore.createIndex('drawingId', 'drawingId', { unique: false });
+        dpStore.createIndex('status', 'status', { unique: false });
       }
     };
 
@@ -1710,4 +1724,4 @@ window.getReport = getReport;
 window.getAllReports = getAllReports;
 window.deleteReport = deleteReport;
 
-console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（v11 Phase7日報・報告書対応）');
+console.log('[idb-storage.js] ✓ IndexedDBストレージモジュール読み込み完了（v12 Phase8図面管理対応）');

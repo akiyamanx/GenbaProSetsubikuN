@@ -115,6 +115,10 @@ async function showScreen(screenId) {
   if (screenId === 'daily-report') {
     if (typeof initDailyReport === 'function') initDailyReport();
   }
+  // v12追加: Phase8図面管理画面の初期化
+  if (screenId === 'drawing') {
+    if (typeof initDrawingScreen === 'function') initDrawingScreen();
+  }
   if (screenId === 'tax') {
     if (typeof selectTaxType === 'function') {
       const savedTaxType = localStorage.getItem('reform_app_tax_type') || 'blue';
