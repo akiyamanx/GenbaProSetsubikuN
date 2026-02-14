@@ -303,16 +303,47 @@ function dwCloseRegisterModal() {
   dwSelectedFile = null;
 }
 
-async function dwLoadGenbaSelect() {
+async function dwLoadGenbaSelect(selectId) {
   var sel = document.getElementById('dwRegGenba');
   if (!sel) return;
   var list = await getAllGenba();
-  sel.innerHTML = '<option value="">-- 現場を選択 --</option>';
+  sel.innerHTML = '<option value="">-- 現場を選択 --</option>' +
+    '<option value="__new__">＋ 新しい現場を登録</option>';
   list.forEach(function(g) {
     var o = document.createElement('option');
     o.value = g.id; o.textContent = g.name || '(名称なし)';
     sel.appendChild(o);
   });
+  if (selectId) sel.value = selectId;
+  sel.onchange = function() {
+    if (sel.value === '__new__') dwCreateGenbaFromSelect();
+  };
+}
+
+async function dwCreateGenbaFromSelect() {
+  var name = prompt('新しい現場名を入力してください');
+  if (!name || !name.trim()) {
+    var sel = document.getElementById('dwRegGenba');
+    if (sel) sel.value = '';
+    return;
+  }
+  try {
+    var genba = { id: generateId(), name: name.trim(), status: '進行中' };
+    var result = await saveGenba(genba);
+    if (result) {
+      await dwLoadGenbaSelect(result.id);
+      if (typeof showToast === 'function') showToast('現場「' + name.trim() + '」を登録しました');
+    } else {
+      alert('現場の登録に失敗しました。');
+      var sel = document.getElementById('dwRegGenba');
+      if (sel) sel.value = '';
+    }
+  } catch (e) {
+    console.error('[DrawingManager] 現場登録失敗:', e);
+    alert('現場の登録に失敗しました。');
+    var sel = document.getElementById('dwRegGenba');
+    if (sel) sel.value = '';
+  }
 }
 
 // === ファイル選択 ===
