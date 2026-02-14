@@ -3,7 +3,7 @@
     <div class="header" style="background: linear-gradient(135deg, #6366f1, #4338ca);">
       <button class="header-btn" onclick="showScreen('home')">🏠</button>
       <h1>📐 図面管理</h1>
-      <button class="header-btn" id="dwAddBtn" onclick="if(typeof dwOpenRegisterModal==='function')dwOpenRegisterModal()" style="font-size:24px;">＋</button>
+      <button class="header-btn" id="dwAddBtn" onclick="console.log('＋ボタン押された', typeof dwOpenRegisterModal); if(typeof dwOpenRegisterModal==='function') dwOpenRegisterModal();" style="font-size:24px;">＋</button>
     </div>
 
     <!-- 現場フィルタ -->

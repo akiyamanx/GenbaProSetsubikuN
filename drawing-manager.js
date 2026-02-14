@@ -8,6 +8,8 @@
 // 依存: idb-storage.js（getDB, generateId, getAllGenba）
 // ==========================================
 
+console.log('[drawing-manager.js] 読み込み完了');
+
 var STORE_DRAWING = 'drawingStore';
 var STORE_DRAWING_PIN = 'drawingPinStore';
 var dwObjectUrls = [];
@@ -276,6 +278,7 @@ function dwEsc(s) {
 // === 登録モーダル ===
 
 function dwOpenRegisterModal() {
+  console.log('[図面] モーダル表示関数が呼ばれました');
   console.log('[DrawingManager] モーダルを開きます');
   var modal = document.getElementById('dwRegisterModal');
   if (!modal) { console.error('[DrawingManager] dwRegisterModal が見つかりません'); return; }
