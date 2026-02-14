@@ -227,6 +227,9 @@ async function drAddEntry(data) {
   var idx = drEntryCount++;
   var container = document.getElementById('drEntriesContainer');
 
+  // 丸数字を生成（①②③...）
+  var circleNum = (idx < 10) ? String.fromCharCode(0x2460 + idx) : '(' + (idx + 1) + ')';
+
   // 現場リスト取得
   var genbaList = await getAllGenba();
   var genbaOpts = '<option value="">現場を選択</option>';
@@ -235,17 +238,39 @@ async function drAddEntry(data) {
     genbaOpts += '<option value="' + g.id + '" data-name="' + escapeHtml(g.name) + '"' + sel + '>' + escapeHtml(g.name) + '</option>';
   });
 
+  // 工種セレクトオプション（KOUTEI_COLORSから生成）
+  var koujiOpts = '<option value="">なし</option>';
+  if (typeof KOUTEI_COLORS !== 'undefined') {
+    Object.keys(KOUTEI_COLORS).forEach(function(key) {
+      var sel = (data && data.kouji === key) ? ' selected' : '';
+      koujiOpts += '<option value="' + escapeHtml(key) + '"' + sel + '>' + escapeHtml(key) + '</option>';
+    });
+  }
+
   var html =
     '<div id="drEntry_' + idx + '" style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:12px; margin-bottom:12px; position:relative;">' +
       '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
-        '<span style="font-size:13px; font-weight:bold; color:#374151;">現場' + (idx + 1) + '</span>' +
-        (idx > 0 ? '<button onclick="drRemoveEntry(' + idx + ')" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer;">×削除</button>' : '') +
+        '<span style="font-size:14px; font-weight:bold; color:#1565c0;">現場' + circleNum + '</span>' +
+        '<button onclick="drRemoveEntry(' + idx + ')" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer;">× 削除</button>' +
       '</div>' +
-      '<div style="margin-bottom:8px;">' +
-        '<select id="drEntryGenba_' + idx + '" onchange="drOnEntryGenbaChange(' + idx + ')" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">' + genbaOpts + '</select>' +
+      // 現場選択 + ＋新規ボタン
+      '<div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">' +
+        '<select id="drEntryGenba_' + idx + '" onchange="drOnEntryGenbaChange(' + idx + ')" style="flex:1; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">' + genbaOpts + '</select>' +
+        '<button type="button" onclick="drShowNewGenbaForm(' + idx + ')" style="padding:8px 12px; background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer; white-space:nowrap;">＋新規</button>' +
       '</div>' +
+      // 新規現場ミニフォーム（非表示）
+      '<div id="drNewGenbaForm_' + idx + '" style="display:none; background:#e8f5e9; border:1px solid #a5d6a7; border-radius:8px; padding:10px; margin-bottom:8px;">' +
+        '<div style="font-size:12px; font-weight:bold; color:#2e7d32; margin-bottom:6px;">新規現場を追加</div>' +
+        '<input type="text" id="drNewGenbaName_' + idx + '" placeholder="現場名（例: 小出邸）" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:14px; margin-bottom:6px;">' +
+        '<input type="text" id="drNewGenbaAddr_' + idx + '" placeholder="住所（任意）" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; font-size:14px; margin-bottom:8px;">' +
+        '<div style="display:flex; gap:6px;">' +
+          '<button type="button" onclick="drAddNewGenba(' + idx + ')" style="flex:1; padding:8px; background:#2e7d32; color:white; border:none; border-radius:6px; font-size:13px; font-weight:bold; cursor:pointer;">追加する</button>' +
+          '<button type="button" onclick="drHideNewGenbaForm(' + idx + ')" style="flex:1; padding:8px; background:#e0e0e0; color:#333; border:none; border-radius:6px; font-size:13px; cursor:pointer;">キャンセル</button>' +
+        '</div>' +
+      '</div>' +
+      // 工種セレクト
       '<div style="margin-bottom:8px;">' +
-        '<input type="text" id="drEntryKouji_' + idx + '" placeholder="工種（例: 配管工事）" value="' + escapeHtml((data && data.kouji) || '') + '" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">' +
+        '<select id="drEntryKouji_' + idx + '" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">' + koujiOpts + '</select>' +
       '</div>' +
       '<div style="display:grid; grid-template-columns:1fr auto 1fr; gap:6px; align-items:center; margin-bottom:8px;">' +
         '<input type="time" id="drEntryStart_' + idx + '" value="' + ((data && data.startTime) || '') + '" style="padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">' +
@@ -274,12 +299,52 @@ async function drAddEntry(data) {
 }
 
 function drRemoveEntry(idx) {
+  // 最低1つの現場が必要
+  var entries = document.querySelectorAll('#drEntriesContainer > div[id^="drEntry_"]');
+  if (entries.length <= 1) {
+    alert('最低1つの現場が必要です');
+    return;
+  }
   var el = document.getElementById('drEntry_' + idx);
   if (el) el.remove();
 }
 
 function drOnEntryGenbaChange(idx) {
   // 現場変更時の処理（将来拡張用）
+}
+
+// === 新規現場インライン追加 ===
+function drShowNewGenbaForm(idx) {
+  var form = document.getElementById('drNewGenbaForm_' + idx);
+  if (form) form.style.display = 'block';
+}
+
+function drHideNewGenbaForm(idx) {
+  var form = document.getElementById('drNewGenbaForm_' + idx);
+  if (form) form.style.display = 'none';
+}
+
+async function drAddNewGenba(idx) {
+  var nameInput = document.getElementById('drNewGenbaName_' + idx);
+  var addrInput = document.getElementById('drNewGenbaAddr_' + idx);
+  var name = nameInput ? nameInput.value.trim() : '';
+  if (!name) { alert('現場名を入力してください'); return; }
+  var address = addrInput ? addrInput.value.trim() : '';
+
+  var genba = await saveGenba({ name: name, address: address, status: 'active' });
+  if (!genba) { alert('現場の保存に失敗しました'); return; }
+
+  // セレクトに追加＋自動選択
+  var select = document.getElementById('drEntryGenba_' + idx);
+  if (select) {
+    var opt = document.createElement('option');
+    opt.value = genba.id;
+    opt.textContent = name;
+    opt.setAttribute('data-name', name);
+    select.appendChild(opt);
+    select.value = genba.id;
+  }
+  drHideNewGenbaForm(idx);
 }
 
 // === 写真サムネイル表示 ===
@@ -852,5 +917,8 @@ window.drDeleteReport = drDeleteReport;
 window.drOnCompGenbaChange = drOnCompGenbaChange;
 window.drAddPhotoSet = drAddPhotoSet;
 window.drRemovePhotoSet = drRemovePhotoSet;
+window.drShowNewGenbaForm = drShowNewGenbaForm;
+window.drHideNewGenbaForm = drHideNewGenbaForm;
+window.drAddNewGenba = drAddNewGenba;
 
 console.log('[daily-report.js] ✓ Phase7日報・報告書モジュール読み込み完了');
