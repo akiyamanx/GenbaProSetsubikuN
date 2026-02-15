@@ -337,9 +337,11 @@ async function dpRenderPinListPanel(drawingId) {
     item.addEventListener('click', function() {
       var pinId = item.dataset.pinId;
       var markers = document.querySelectorAll('.dp-pin-marker');
+      var baseScale = (typeof dvScale !== 'undefined') ? 1 / Math.sqrt(dvScale) : 1;
+      baseScale = Math.max(0.4, Math.min(2, baseScale));
       markers.forEach(function(m) {
-        m.style.transform = m.dataset.pinId === pinId
-          ? 'translate(-50%,-100%) scale(1.5)' : 'translate(-50%,-100%) scale(1)';
+        var s = m.dataset.pinId === pinId ? baseScale * 1.5 : baseScale;
+        m.style.transform = 'translate(-50%,-100%) scale(' + s + ')';
       });
       var pin = pins.find(function(p) { return p.id === pinId; });
       if (pin) dpShowPinDetailModal(pin);
@@ -429,7 +431,20 @@ function dpCleanup() {
   dpCloseModal(); dpRevokePhotoUrls();
 }
 
+// === ピンサイズの拡大縮小連動 ===
+// scale=1で基準サイズ、拡大時は少し小さく、縮小時は少し大きく（見た目一定に近づける）
+// pinScale = 1/sqrt(scale), clamp 0.4〜2.0
+function updatePinScales(currentScale) {
+  var pinScale = 1 / Math.sqrt(currentScale);
+  pinScale = Math.max(0.4, Math.min(2, pinScale));
+  var pins = document.querySelectorAll('.dp-pin-marker');
+  for (var i = 0; i < pins.length; i++) {
+    pins[i].style.transform = 'translate(-50%,-100%) scale(' + pinScale + ')';
+  }
+}
+
 // === グローバル公開 ===
 window.initDrawingPins = initDrawingPins;
 window.dpCleanup = dpCleanup;
-console.log('[drawing-pin.js] v8.3.2 ピン位置ズレ修正モジュール読み込み完了');
+window.updatePinScales = updatePinScales;
+console.log('[drawing-pin.js] v8.3.3 ピンサイズ連動モジュール読み込み完了');

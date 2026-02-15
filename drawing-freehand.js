@@ -1,5 +1,5 @@
-// drawing-freehand.js - 図面手書き書き込み（v8.4.0 Phase8 Step4）
-// 依存: drawing-viewer.js, drawing-manager.js, idb-storage.js
+// drawing-freehand.js - 図面手書き書き込み（v8.4.1 Phase8 Step4）
+// 依存: drawing-viewer.js, drawing-manager.js, drawing-text.js, idb-storage.js
 
 var fhIsDrawing = false;
 var fhLastX = 0, fhLastY = 0;
@@ -112,14 +112,16 @@ function fhInitEvents(canvas) {
     }
   });
 
-  // ダブルタップ→テキスト入力
+  // ダブルタップ→テキスト入力（DOM要素方式）
   var fhLastTap = 0;
   canvas.addEventListener('touchend', function(e) {
     if (e.touches.length > 0) return;
     var now = Date.now();
     if (now - fhLastTap < 300) {
       var pos = fhGetTouchPos(canvas, e.changedTouches[0]);
-      fhShowTextInput(canvas, pos.x, pos.y);
+      var relX = pos.x / canvas.offsetWidth;
+      var relY = pos.y / canvas.offsetHeight;
+      if (typeof ftShowTextInput === 'function') ftShowTextInput(relX, relY);
       fhLastTap = 0;
     } else {
       fhLastTap = now;
@@ -148,10 +150,12 @@ function fhInitEvents(canvas) {
   canvas.addEventListener('mouseleave', function() {
     if (fhMouseDown) { fhMouseDown = false; fhAutoSave(canvas); }
   });
-  // PC: ダブルクリック→テキスト
+  // PC: ダブルクリック→テキスト（DOM要素方式）
   canvas.addEventListener('dblclick', function(e) {
     var pos = fhGetMousePos(canvas, e);
-    fhShowTextInput(canvas, pos.x, pos.y);
+    var relX = pos.x / canvas.offsetWidth;
+    var relY = pos.y / canvas.offsetHeight;
+    if (typeof ftShowTextInput === 'function') ftShowTextInput(relX, relY);
   });
 }
 
@@ -213,76 +217,6 @@ function fhClearAll() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   // IDBから削除
   if (dvDrawingId) fhSaveToIDB(dvDrawingId, null);
-}
-
-// === テキスト入力（ダブルタップ） ===
-function fhShowTextInput(canvas, x, y) {
-  var old = document.getElementById('fhTextModal');
-  if (old) old.remove();
-
-  var html = '<div id="fhTextModal" style="' +
-    'position:fixed;top:0;left:0;right:0;bottom:0;' +
-    'background:rgba(0,0,0,0.5);z-index:2000;' +
-    'display:flex;align-items:center;justify-content:center;">' +
-    '<div style="background:#fff;border-radius:12px;padding:20px;' +
-    'width:85%;max-width:400px;">' +
-    '<h3 style="margin:0 0 12px;font-size:16px;">テキスト書き込み</h3>' +
-    '<input id="fhTextVal" type="text" placeholder="テキストを入力..." ' +
-    'style="width:100%;padding:10px;border:1px solid #ddd;' +
-    'border-radius:8px;font-size:16px;box-sizing:border-box;margin-bottom:12px;">' +
-    '<div style="margin-bottom:12px;">' +
-    '<label style="font-size:14px;color:#6B7280;">文字サイズ</label>' +
-    '<div id="fhFontSizes" style="display:flex;gap:8px;margin-top:4px;">' +
-    '<button class="fh-fs-btn" data-size="14" style="flex:1;padding:8px;border:2px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:12px;">小</button>' +
-    '<button class="fh-fs-btn" data-size="20" style="flex:1;padding:8px;border:2px solid #3B82F6;border-radius:8px;background:#EFF6FF;cursor:pointer;font-size:16px;">中</button>' +
-    '<button class="fh-fs-btn" data-size="28" style="flex:1;padding:8px;border:2px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:20px;">大</button>' +
-    '</div></div>' +
-    '<div style="display:flex;gap:8px;">' +
-    '<button id="fhTextCancel" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;">キャンセル</button>' +
-    '<button id="fhTextOk" style="flex:1;padding:10px;border:none;border-radius:8px;background:#3B82F6;color:#fff;cursor:pointer;">書き込む</button>' +
-    '</div></div></div>';
-
-  document.body.insertAdjacentHTML('beforeend', html);
-
-  var fontSize = 20;
-  document.querySelectorAll('.fh-fs-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      fontSize = parseInt(btn.dataset.size);
-      document.querySelectorAll('.fh-fs-btn').forEach(function(b) {
-        b.style.borderColor = '#ddd'; b.style.background = '#fff';
-      });
-      btn.style.borderColor = '#3B82F6'; btn.style.background = '#EFF6FF';
-    });
-  });
-
-  document.getElementById('fhTextCancel').addEventListener('click', function() {
-    document.getElementById('fhTextModal').remove();
-  });
-
-  document.getElementById('fhTextOk').addEventListener('click', function() {
-    var text = document.getElementById('fhTextVal').value.trim();
-    if (text) {
-      fhSaveUndo(canvas);
-      var ctx = canvas.getContext('2d');
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.font = 'bold ' + fontSize + 'px sans-serif';
-      var metrics = ctx.measureText(text);
-      var pad = 4;
-      // テキスト背景（読みやすく）
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
-      ctx.fillRect(x - pad, y - fontSize - pad, metrics.width + pad * 2, fontSize + pad * 2);
-      // テキスト本体
-      ctx.fillStyle = fhColor;
-      ctx.fillText(text, x, y);
-      fhAutoSave(canvas);
-    }
-    document.getElementById('fhTextModal').remove();
-  });
-
-  setTimeout(function() {
-    var inp = document.getElementById('fhTextVal');
-    if (inp) inp.focus();
-  }, 100);
 }
 
 // === ツールバーUI ===
@@ -448,6 +382,8 @@ function enableDrawMode() {
   if (canvas) canvas.style.pointerEvents = 'auto';
   if (tb) tb.style.display = 'block';
   if (pinPanel) pinPanel.style.display = 'none';
+  // テキスト要素をインタラクション可能にする
+  if (typeof ftSetInteractive === 'function') ftSetInteractive(true);
 }
 
 function disableDrawMode() {
@@ -456,6 +392,8 @@ function disableDrawMode() {
   if (canvas) canvas.style.pointerEvents = 'none';
   if (tb) tb.style.display = 'none';
   fhIsDrawing = false;
+  // テキスト要素をインタラクション不可にする
+  if (typeof ftSetInteractive === 'function') ftSetInteractive(false);
 }
 
 // === 初期化 ===
@@ -470,6 +408,8 @@ function initFreehand(drawingId) {
   fhCreateToolbar();
   fhUndoStack = [];
   fhLoadAnnotation(drawingId, canvas);
+  // テキスト要素初期化（DOM方式）
+  if (typeof ftInitTexts === 'function') ftInitTexts(drawingId);
   console.log('[freehand] 手書き機能を初期化しました');
 }
 
@@ -479,11 +419,11 @@ function fhCleanup() {
   if (canvas) canvas.remove();
   var tb = document.getElementById('fhToolbar');
   if (tb) tb.remove();
-  var modal = document.getElementById('fhTextModal');
-  if (modal) modal.remove();
   fhUndoStack = [];
   fhIsDrawing = false;
   if (fhSaveTimer) { clearTimeout(fhSaveTimer); fhSaveTimer = null; }
+  // テキスト要素クリーンアップ
+  if (typeof ftCleanupTexts === 'function') ftCleanupTexts();
 }
 
 // === グローバル公開 ===
@@ -492,4 +432,4 @@ window.enableDrawMode = enableDrawMode;
 window.disableDrawMode = disableDrawMode;
 window.fhCleanup = fhCleanup;
 
-console.log('[drawing-freehand.js] v8.4.0 手書き書き込みモジュール読み込み完了');
+console.log('[drawing-freehand.js] v8.4.1 手書き書き込みモジュール読み込み完了');
