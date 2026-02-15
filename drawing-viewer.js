@@ -9,7 +9,7 @@ var dvPdfDoc = null;
 var dvCurrentPage = 1;
 var dvTotalPages = 1;
 var dvObjectUrl = null;
-var dvMode = 'view'; // 'view' or 'pin'
+var dvMode = 'view'; // 'view', 'pin', or 'draw'
 
 // トランスフォーム状態
 var dvScale = 1;
@@ -38,6 +38,8 @@ async function initDrawingViewer(drawingId) {
   console.log('[DrawingViewer] 初期化:', drawingId);
   // v8.3.0: ピン機能クリーンアップ
   if (typeof dpCleanup === 'function') dpCleanup();
+  // v8.4.0: 手書き機能クリーンアップ
+  if (typeof fhCleanup === 'function') fhCleanup();
   dvCleanup();
   dvDrawingId = drawingId;
   dvScale = 1; dvTransX = 0; dvTransY = 0; dvRotation = 0;
@@ -69,6 +71,8 @@ async function initDrawingViewer(drawingId) {
       await dvRenderPdf();
       // v8.3.0: PDF表示後にピン初期化
       if (typeof initDrawingPins === 'function') initDrawingPins(drawingId);
+      // v8.4.0: 手書き機能初期化
+      if (typeof initFreehand === 'function') initFreehand(drawingId);
     } else {
       dvRenderImage();
       // v8.3.0: 画像はonload後にピン初期化（dvRenderImage内でも呼ぶ）
@@ -82,6 +86,8 @@ async function initDrawingViewer(drawingId) {
 // === クリーンアップ ===
 
 function dvCleanup() {
+  // v8.4.0: 手書きキャンバス破棄
+  if (typeof fhCleanup === 'function') fhCleanup();
   if (dvObjectUrl) {
     URL.revokeObjectURL(dvObjectUrl);
     dvObjectUrl = null;
@@ -224,6 +230,8 @@ function dvRenderImage() {
     console.log('[DrawingViewer] 画像表示完了');
     // v8.3.0: 画像表示後にピン初期化
     if (typeof initDrawingPins === 'function') initDrawingPins(dvDrawingId);
+    // v8.4.0: 手書き機能初期化
+    if (typeof initFreehand === 'function') initFreehand(dvDrawingId);
   };
 
   img.style.display = 'block';
@@ -480,10 +488,18 @@ function dvSetMode(mode) {
 function dvUpdateModeUI() {
   var viewBtn = document.getElementById('dvModeView');
   var pinBtn = document.getElementById('dvModePin');
+  var drawBtn = document.getElementById('dvModeDraw');
   if (viewBtn) viewBtn.style.opacity = dvMode === 'view' ? '1' : '0.4';
   if (pinBtn) pinBtn.style.opacity = dvMode === 'pin' ? '1' : '0.4';
+  if (drawBtn) drawBtn.style.opacity = dvMode === 'draw' ? '1' : '0.4';
   var container = document.getElementById('dvContainer');
   if (container) container.style.cursor = dvMode === 'view' ? 'grab' : 'crosshair';
+  // v8.4.0: 書き込みモード切替
+  if (dvMode === 'draw') {
+    if (typeof enableDrawMode === 'function') enableDrawMode();
+  } else {
+    if (typeof disableDrawMode === 'function') disableDrawMode();
+  }
 }
 
 // === 画面遷移 ===
