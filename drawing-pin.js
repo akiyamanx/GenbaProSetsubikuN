@@ -1,4 +1,4 @@
-// drawing-pin.js - 図面ピン管理モジュール（v8.3.1 Phase8 Step3）
+// drawing-pin.js - 図面ピン管理モジュール（v8.3.2 Phase8 Step3）
 // 依存: drawing-viewer.js, drawing-manager.js, idb-storage.js
 
 var dpPinTapStart = null;
@@ -80,14 +80,27 @@ function dpScreenToDrawingCoord(clientX, clientY, container) {
 }
 
 // === ピンオーバーレイ ===
+// v8.3.2修正: オーバーレイサイズを図面要素に合わせる（width:100%だとdvTransformの親幅になりズレる）
+function dpGetDrawingElementSize() {
+  var el = document.getElementById('dvCanvas');
+  if (!el || el.style.display === 'none') el = document.getElementById('dvImage');
+  if (!el) return null;
+  var w = parseFloat(el.style.width) || el.width || el.naturalWidth || el.offsetWidth;
+  var h = parseFloat(el.style.height) || el.height || el.naturalHeight || el.offsetHeight;
+  return (w > 0 && h > 0) ? { w: w, h: h } : null;
+}
+
 function dpCreatePinOverlay() {
   var existing = document.getElementById('dpPinOverlay');
   if (existing) return existing;
   var transform = document.getElementById('dvTransform');
   if (!transform) return null;
+  var size = dpGetDrawingElementSize();
   var overlay = document.createElement('div');
   overlay.id = 'dpPinOverlay';
-  overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;';
+  var wPx = size ? size.w + 'px' : '100%';
+  var hPx = size ? size.h + 'px' : '100%';
+  overlay.style.cssText = 'position:absolute;top:0;left:0;width:' + wPx + ';height:' + hPx + ';pointer-events:none;z-index:10;';
   transform.style.position = 'relative';
   transform.appendChild(overlay);
   return overlay;
@@ -96,6 +109,12 @@ function dpCreatePinOverlay() {
 async function dpRenderAllPins(drawingId) {
   var overlay = dpCreatePinOverlay();
   if (!overlay) return;
+  // v8.3.2: オーバーレイサイズを図面要素に同期（ページ切替等で変わる場合）
+  var size = dpGetDrawingElementSize();
+  if (size) {
+    overlay.style.width = size.w + 'px';
+    overlay.style.height = size.h + 'px';
+  }
   var old = overlay.querySelectorAll('.dp-pin-marker');
   for (var i = 0; i < old.length; i++) old[i].remove();
   try {
@@ -413,4 +432,4 @@ function dpCleanup() {
 // === グローバル公開 ===
 window.initDrawingPins = initDrawingPins;
 window.dpCleanup = dpCleanup;
-console.log('[drawing-pin.js] v8.3.1 ピン立て+色選択モジュール読み込み完了');
+console.log('[drawing-pin.js] v8.3.2 ピン位置ズレ修正モジュール読み込み完了');
