@@ -36,6 +36,8 @@ var dvLastTapTime = 0;
 
 async function initDrawingViewer(drawingId) {
   console.log('[DrawingViewer] 初期化:', drawingId);
+  // v8.3.0: ピン機能クリーンアップ
+  if (typeof dpCleanup === 'function') dpCleanup();
   dvCleanup();
   dvDrawingId = drawingId;
   dvScale = 1; dvTransX = 0; dvTransY = 0; dvRotation = 0;
@@ -65,8 +67,11 @@ async function initDrawingViewer(drawingId) {
     // 表示
     if (dvDrawingData.fileType === 'pdf') {
       await dvRenderPdf();
+      // v8.3.0: PDF表示後にピン初期化
+      if (typeof initDrawingPins === 'function') initDrawingPins(drawingId);
     } else {
       dvRenderImage();
+      // v8.3.0: 画像はonload後にピン初期化（dvRenderImage内でも呼ぶ）
     }
   } catch (e) {
     console.error('[DrawingViewer] 初期化エラー:', e);
@@ -217,6 +222,8 @@ function dvRenderImage() {
     dvRecenter();
     dvApplyTransform();
     console.log('[DrawingViewer] 画像表示完了');
+    // v8.3.0: 画像表示後にピン初期化
+    if (typeof initDrawingPins === 'function') initDrawingPins(dvDrawingId);
   };
 
   img.style.display = 'block';

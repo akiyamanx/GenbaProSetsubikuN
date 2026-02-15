@@ -4,7 +4,7 @@
 // ★ v3.0.0: CULOchanKAIKEIproからフォーク、現場管理機能追加
 // ==========================================
 
-const CACHE_NAME = 'genba-pro-v5.32.1';
+const CACHE_NAME = 'genba-pro-v5.33.0';
 const OFFLINE_URL = 'index.html';
 
 // キャッシュするファイル（相対パス）
@@ -61,6 +61,7 @@ const FILES_TO_CACHE = [
   'report-pdf.js',
   'drawing-manager.js',
   'drawing-viewer.js',
+  'drawing-pin.js',
   // ★ 画面HTMLファイル（ルート直下）
   'home.html',
   'genba.html',
