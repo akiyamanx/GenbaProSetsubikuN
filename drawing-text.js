@@ -195,6 +195,14 @@ function ftSelectText(el) {
     'background:#1F2937;border-radius:12px;padding:8px 12px;display:flex;gap:8px;z-index:3000;' +
     'box-shadow:0 4px 12px rgba(0,0,0,0.3);';
   var actions = [
+    { label: '\u270F\uFE0F', fn: function() {
+      ftShowEditDialog(el.textContent, function(newText) {
+        if (newText !== null && newText.trim() !== '') {
+          el.textContent = newText.trim();
+          ftUpdateText(el.id, newText.trim());
+        }
+      });
+    }},
     { label: 'A-', fn: function() {
       var sz = Math.max(10, (parseInt(el.style.fontSize) || 24) - 4);
       el.style.fontSize = sz + 'px'; ftUpdateSize(el.id, sz);
@@ -234,9 +242,51 @@ function ftUpdateSize(id, sz) {
   if (item) { item.fontSize = sz; }
   ftPersistTexts();
 }
+function ftUpdateText(id, text) {
+  var item = ftTextElements.find(function(t) { return t.id === id; });
+  if (item) { item.text = text; }
+  ftPersistTexts();
+}
 function ftDeleteText(id) {
   ftTextElements = ftTextElements.filter(function(t) { return t.id !== id; });
   ftPersistTexts();
+}
+
+// === テキスト修正ダイアログ ===
+function ftShowEditDialog(currentText, callback) {
+  var old = document.getElementById('ftEditDialog');
+  if (old) old.remove();
+  var escaped = currentText.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  var html = '<div id="ftEditDialog" style="position:fixed;top:0;left:0;right:0;bottom:0;' +
+    'background:rgba(0,0,0,0.5);z-index:4000;display:flex;align-items:center;justify-content:center;">' +
+    '<div style="background:#fff;border-radius:12px;padding:20px;width:85%;max-width:380px;">' +
+    '<h3 style="margin:0 0 12px;font-size:16px;">テキスト修正</h3>' +
+    '<input id="ftEditInput" type="text" value="' + escaped + '" ' +
+    'style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;' +
+    'font-size:18px;box-sizing:border-box;margin-bottom:16px;">' +
+    '<div style="display:flex;gap:8px;">' +
+    '<button id="ftEditCancel" style="flex:1;padding:10px;background:#e5e7eb;border:none;' +
+    'border-radius:8px;font-size:15px;cursor:pointer;">キャンセル</button>' +
+    '<button id="ftEditSave" style="flex:1;padding:10px;background:#3B82F6;color:#fff;border:none;' +
+    'border-radius:8px;font-weight:bold;font-size:15px;cursor:pointer;">変更</button>' +
+    '</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+  var input = document.getElementById('ftEditInput');
+  setTimeout(function() { input.focus(); input.select(); }, 100);
+  document.getElementById('ftEditSave').addEventListener('click', function() {
+    callback(input.value);
+    document.getElementById('ftEditDialog').remove();
+  });
+  document.getElementById('ftEditCancel').addEventListener('click', function() {
+    callback(null);
+    document.getElementById('ftEditDialog').remove();
+  });
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      callback(input.value);
+      document.getElementById('ftEditDialog').remove();
+    }
+  });
 }
 
 // === IDB保存（デバウンス300ms） ===
@@ -301,6 +351,8 @@ function ftCleanupTexts() {
   if (tb) tb.remove();
   var modal = document.getElementById('ftTextModal');
   if (modal) modal.remove();
+  var edit = document.getElementById('ftEditDialog');
+  if (edit) edit.remove();
   ftTextElements = [];
   if (ftSaveTimer) { clearTimeout(ftSaveTimer); ftSaveTimer = null; }
 }
@@ -311,4 +363,4 @@ window.ftInitTexts = ftInitTexts;
 window.ftCleanupTexts = ftCleanupTexts;
 window.ftSetInteractive = ftSetInteractive;
 
-console.log('[drawing-text.js] v8.4.1 テキスト書き込みモジュール読み込み完了');
+console.log('[drawing-text.js] v8.4.2 テキスト書き込みモジュール読み込み完了');
