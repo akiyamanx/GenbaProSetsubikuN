@@ -118,6 +118,9 @@ function fhInitEvents(canvas) {
     if (e.touches.length > 0) return;
     var now = Date.now();
     if (now - fhLastTap < 300) {
+      // ダブルタップで描かれた2つの点をUndoで消す
+      fhPerformUndo(); // 2回目タップの点を消す
+      fhPerformUndo(); // 1回目タップの点を消す
       var pos = fhGetTouchPos(canvas, e.changedTouches[0]);
       var relX = pos.x / canvas.offsetWidth;
       var relY = pos.y / canvas.offsetHeight;
@@ -152,6 +155,9 @@ function fhInitEvents(canvas) {
   });
   // PC: ダブルクリック→テキスト（DOM要素方式）
   canvas.addEventListener('dblclick', function(e) {
+    // ダブルクリックで描かれた2つの点をUndoで消す
+    fhPerformUndo();
+    fhPerformUndo();
     var pos = fhGetMousePos(canvas, e);
     var relX = pos.x / canvas.offsetWidth;
     var relY = pos.y / canvas.offsetHeight;
