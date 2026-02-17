@@ -144,8 +144,8 @@ function dpRenderPin(pin, overlay) {
   el.innerHTML = dpPinSvg(pc.hex) +
     '<div style="position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;' +
     'background:' + sc + ';border:2px solid #fff;"></div>';
-  el.addEventListener('click', function(e) { e.stopPropagation(); dpShowPinDetailModal(pin); });
-  el.addEventListener('touchend', function(e) { e.stopPropagation(); e.preventDefault(); dpShowPinDetailModal(pin); });
+  el.addEventListener('click', function(e) { e.stopPropagation(); if (dvMode !== 'pin') return; dpShowPinDetailModal(pin); });
+  el.addEventListener('touchend', function(e) { e.stopPropagation(); e.preventDefault(); if (dvMode !== 'pin') return; dpShowPinDetailModal(pin); });
   overlay.appendChild(el);
 }
 
