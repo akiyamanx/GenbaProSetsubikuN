@@ -160,12 +160,11 @@ function deDrawTexts(ctx, cw, ch, dpr) {
     ctx.font = 'bold ' + fontSize + 'px sans-serif';
     ctx.textBaseline = 'top';
 
-    // テキスト背景のアウトライン（白縁取り — 視認性確保）
-    var outlineW = Math.max(2, fontSize * 0.1);
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = outlineW;
-    ctx.lineJoin = 'round';
-    ctx.strokeText(t.text, x, y);
+    // 半透明白背景（DOM表示と同じ方式）
+    var metrics = ctx.measureText(t.text);
+    var pad = Math.max(2, fontSize * 0.1);
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillRect(x - pad, y - pad, metrics.width + pad * 2, fontSize + pad * 2);
 
     // テキスト本体
     ctx.fillStyle = t.color || '#000000';

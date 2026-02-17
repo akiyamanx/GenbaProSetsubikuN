@@ -7,7 +7,7 @@
       <div style="display:flex;gap:4px;">
         <button class="header-btn" id="dvRotateBtn" onclick="if(typeof dvRotate==='function')dvRotate()" style="font-size:16px;">🔄</button>
         <button class="header-btn" id="dvModeView" onclick="if(typeof dvSetMode==='function')dvSetMode('view')" style="font-size:16px;opacity:1;">👆</button>
-        <button class="header-btn" id="dvModePin" onclick="if(typeof dvSetMode==='function')dvSetMode('pin')" style="font-size:16px;opacity:0.4;">📌</button>
+        <button class="header-btn" id="dvModePin" onclick="if(typeof dvSetMode==='function')dvSetMode('pin')" style="opacity:0.4;display:flex;align-items:center;justify-content:center;"><svg width="20" height="26" viewBox="0 0 28 36" fill="none"><path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.268 21.732 0 14 0z" fill="#FF6B8A"/><circle cx="14" cy="14" r="5" fill="white"/></svg></button>
         <button class="header-btn" id="dvModeDraw" onclick="if(typeof dvSetMode==='function')dvSetMode('draw')" style="font-size:16px;opacity:0.4;">✏️</button>
         <button class="header-btn" id="dvExportBtn" onclick="if(typeof exportDrawingAsImage==='function')exportDrawingAsImage()" style="font-size:16px;" title="図面をエクスポート">📤</button>
       </div>

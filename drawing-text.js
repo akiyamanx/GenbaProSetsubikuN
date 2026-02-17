@@ -96,7 +96,7 @@ function ftCreateTextDOM(id, text, posX, posY, fontSize, color) {
   el.className = 'ft-text-element';
   el.style.cssText = 'position:absolute;left:' + (posX * 100) + '%;top:' + (posY * 100) + '%;' +
     'font-size:' + fontSize + 'px;font-weight:bold;color:' + (color || '#000') + ';' +
-    'text-shadow:-2px -2px 0 #fff,2px -2px 0 #fff,-2px 2px 0 #fff,2px 2px 0 #fff;' +
+    'background:rgba(255,255,255,0.6);border-radius:2px;' +
     'cursor:move;pointer-events:auto;user-select:none;white-space:nowrap;z-index:17;' +
     'padding:2px 4px;border:2px dashed transparent;';
   el.textContent = text;
